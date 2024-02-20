@@ -21,7 +21,7 @@ static struct gc_alloc
 } *table;
 
 static uint8_t *mark_table, *used_table;
-static uint32_t num_allocs, num_table_entries, table_size, table_mask;
+static uint32_t num_allocs, num_table_entries, table_mask;
 
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
 
@@ -46,31 +46,25 @@ static uint32_t find_index(void *ptr)
 
 static void realloc_table()
 {
-  uint32_t old_size = table_size;
-  if (2*num_allocs >= table_size)
-  {
+  uint32_t old_mask = table_mask;
+  if (2*num_allocs >= table_mask)
     table_mask = table_mask ? ((table_mask << 1) | 1) : 63;
-    table_size = table_mask+1;
+  else if (table_mask >= 8*num_allocs)
+    while(table_mask >= 4*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
-    free(mark_table);
-    mark_table = (uint8_t*)malloc((table_size>>3)*sizeof(uint8_t));
-  }
-  else if (table_size > 8*num_allocs)
+  if (old_mask != table_mask)
   {
-    while(table_mask+1 > 4*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
-    table_size = table_mask+1;
-
     free(mark_table);
-    mark_table = (uint8_t*)malloc((table_size>>3)*sizeof(uint8_t));
+    mark_table = (uint8_t*)malloc(((table_mask+1)>>3)*sizeof(uint8_t));
   }
 
   gc_alloc *old_table = table;
-  table = (gc_alloc*)calloc(table_size, sizeof(gc_alloc));
+  table = (gc_alloc*)calloc(table_mask+1, sizeof(gc_alloc));
 
   uint64_t *old_used_table = (uint64_t *)used_table;
-  used_table = (uint8_t*)calloc(table_size>>3, sizeof(uint8_t));
+  used_table = (uint8_t*)calloc((table_mask+1)>>3, sizeof(uint8_t));
 
-  for(uint32_t i64 = 0; i64 < (old_size>>6); ++i64)
+  for(uint32_t i64 = 0; i64 < ((old_mask+1)>>6); ++i64)
   {
     uint64_t bits = old_used_table[i64];
     uint32_t i = (i64<<6);
@@ -97,7 +91,7 @@ extern "C" void *gc_malloc(size_t bytes)
   if (!ptr) return 0;
   ++num_allocs;
   ++num_table_entries;
-  if (2*num_table_entries >= table_size) realloc_table();
+  if (2*num_table_entries >= table_mask) realloc_table();
   uint32_t i = find_insert_index(ptr);
   table[i].ptr = ptr;
   BITVEC_SET(used_table, i);
@@ -143,7 +137,7 @@ static void mark(void *ptr, size_t bytes)
 static void sweep()
 {
   uint64_t *marks = (uint64_t*)mark_table;
-  for(uint32_t i64 = 0; i64 < (table_size>>6); ++i64)
+  for(uint32_t i64 = 0; i64 < ((table_mask+1)>>6); ++i64)
   {
     uint64_t bits = marks[i64];
     uint32_t i = (i64<<6);
@@ -159,7 +153,7 @@ static void sweep()
 
 extern "C" void gc_collect()
 {
-  memcpy(mark_table, used_table, table_size>>3);
+  memcpy(mark_table, used_table, (table_mask+1)>>3);
 
   printf("Marking static data.\n");
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
@@ -172,15 +166,15 @@ extern "C" void gc_collect()
   sweep();
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
-  if (table_size > 8*num_allocs && table_size >= 128) realloc_table();
+  if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
 }
 
 extern "C" void gc_dump()
 {
-  for(uint32_t i = 0; i < table_size; ++i)
+  for(uint32_t i = 0; i <= table_mask; ++i)
     if (VALID_TABLE_ENTRY(table[i]))
       printf("Table %u: %p\n", i, table[i].ptr);
-  printf("%u allocations total, %u used table entries. Table size: %u\n", num_allocs, num_table_entries, table_size);
+  printf("%u allocations total, %u used table entries. Table size: %u\n", num_allocs, num_table_entries, table_mask+1);
 }
 
 extern "C" uint32_t gc_num_ptrs()
