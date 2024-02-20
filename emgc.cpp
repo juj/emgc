@@ -49,8 +49,8 @@ static void realloc_table()
   uint32_t old_mask = table_mask;
   if (2*num_allocs >= table_mask)
     table_mask = table_mask ? ((table_mask << 1) | 1) : 63;
-  else if (table_mask >= 8*num_allocs)
-    while(table_mask >= 4*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
+  else
+    while(table_mask >= 8*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
   if (old_mask != table_mask)
   {
