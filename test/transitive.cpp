@@ -17,7 +17,7 @@ void func()
 
 int main()
 {
-  func();
+  CALL_INDIRECTLY(func);
 
   global = 0;
   PIN(&global);

@@ -95,7 +95,7 @@ extern "C" void *gc_malloc(size_t bytes)
   uint32_t i = find_insert_index(ptr);
   table[i].ptr = ptr;
   BITVEC_SET(used_table, i);
-  printf("gc_malloc: Allocated ptr %p\n", ptr);
+  EM_ASM({console.log(`gc_malloc: Allocated ptr ${$0.toString(16)}`)}, ptr);
   return ptr;
 }
 
@@ -119,7 +119,7 @@ extern "C" void gc_free(void *ptr)
 
 static void mark(void *ptr, size_t bytes)
 {
-  printf("Marking ptr range %p - %p (%zu bytes)...\n", ptr, (char*)ptr + bytes, bytes);
+  EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
@@ -127,7 +127,7 @@ static void mark(void *ptr, size_t bytes)
     uint32_t i = find_index(*p);
     if (i != (uint32_t)-1 && BITVEC_GET(mark_table, i))
     {
-      printf("Marked ptr %p at index %u from memory address %p.\n", *p, i, p);
+      EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
       BITVEC_CLEAR(mark_table, i);
       mark(*p, malloc_usable_size(*p));
     }
@@ -155,14 +155,14 @@ extern "C" void gc_collect()
 {
   memcpy(mark_table, used_table, (table_mask+1)>>3);
 
-  printf("Marking static data.\n");
+  EM_ASM({console.log("Marking static data.")});
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
 
-  printf("Marking stack.\n");
+  EM_ASM({console.log("Marking stack.")});
   uintptr_t stack_bottom = emscripten_stack_get_current();
   mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
 
-  printf("Sweeping.\n");
+  EM_ASM({console.log("Sweeping..")});
   sweep();
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.

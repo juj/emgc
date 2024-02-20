@@ -8,7 +8,7 @@ for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
 
 tests = glob.glob('test/*.cpp')
 
-cmd = ['em++.bat', 'emgc.cpp', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js']
+cmd = ['em++.bat', 'emgc.cpp', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers']
 
 failures = []
 passes = 0
@@ -26,6 +26,7 @@ for m in modes:
       failures += [c]
 
 for f in failures:
-  print(f'FAIL: {str(f)}')
+  cmd = ' '.join(f)
+  print(f'FAIL: {cmd}')
 print('')
 print(f'{passes}/{passes+len(failures)} tests passed.')
