@@ -170,6 +170,9 @@ extern "C" void gc_collect()
 
   printf("Sweeping.\n");
   sweep();
+
+  // Compactify managed allocation array if it is now overly large to fit all allocations.
+  if (table_size > 8*num_allocs && table_size >= 128) realloc_table();
 }
 
 extern "C" void gc_dump()
