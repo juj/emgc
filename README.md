@@ -2,6 +2,8 @@
 
 A tiny low-level research garbage collector to be used solely on the Emscripten WebAssembly platform.
 
+This is a toy project used to introspect Emscripten compiler behavior. Not for production use.
+
 # Introduction
 
 Emgc provides the user the ability to do low-level `malloc()` style memory allocations do not need to be manually `free()`d, but are garbage collected instead. Example C/C++ code:
@@ -39,8 +41,8 @@ Additionally, Emgc does support manual freeing of GC memory, even though that is
 int main()
 {
   char *data = gc_malloc(1024*1024*1024);
-  gc_free(data); // Explicitly frees up the allocated memory. May be useful to immediately force huge allocs to go away.
-}
+  gc_free(data); // Explicitly frees up the allocated memory. May be useful to immediately
+}                // force huge allocs to go away.
 ```
 
 # Usage
@@ -86,7 +88,7 @@ int main()
     gc_make_root(global);
 
     global[0] = (int*)gc_malloc(42);
-    gc_collect(); // will not free memory.
+    gc_collect(); // will not free memory because global was marked a root.
 }
 ```
 
