@@ -20,7 +20,7 @@ void require_(int condition, const char *str, const char *file, int line)
 {
   if (!condition)
   {
-    EM_ASM({console.error(`${UTF8ToString($0)}:$1: Test "${UTF8ToString($2)}" failed!`)}, file, line, str);
+    EM_ASM({console.error(`${UTF8ToString($0)}:${$1}: Test "${UTF8ToString($2)}" failed!`)}, file, line, str);
     exit(1);
   }
 }

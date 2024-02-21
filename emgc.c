@@ -1,25 +1,29 @@
 #include <stdlib.h>
-#include <stdint.h>
 #include <assert.h>
 #include <memory.h>
-#include <stdio.h> // xxxxxxxxxxxxxx remove
 #include <emscripten/stack.h>
 #include <emscripten/heap.h>
+#include <emscripten/eventloop.h>
+#include "emgc.h"
+
+// Pass this define to not scan the global memory during GC. If you register all global managed
+// variables yourself, skipping automatic marking can improve performance.
+// #define EMGC_SKIP_AUTOMATIC_STATIC_MARKING
 
 #define BITVEC_GET(arr, i)  (((arr)[(i)>>3] &    1<<((i)&7)) != 0)
 #define BITVEC_SET(arr, i)   ((arr)[(i)>>3] |=   1<<((i)&7))
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
-#define VALID_TABLE_ENTRY(entry) ((uintptr_t)((entry).ptr) > 1)
 #define IS_ALIGNED(ptr, size) (((uintptr_t)(ptr) & ((size)-1)) == 0)
 
-extern "C" size_t malloc_usable_size(void*);
-extern "C" char __global_base, __data_end, __heap_base;
+size_t malloc_usable_size(void*);
+extern char __global_base, __data_end, __heap_base;
 
-static struct gc_alloc
+typedef struct gc_alloc
 {
   void *ptr;
-} *table;
+} gc_alloc;
 
+static gc_alloc *table;
 static uint8_t *mark_table, *used_table;
 static uint32_t num_allocs, num_table_entries, table_mask;
 
@@ -38,8 +42,8 @@ static uint32_t find_insert_index(void *ptr)
 
 static uint32_t find_index(void *ptr)
 {
-  if (ptr < &__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)&__heap_base + emscripten_get_heap_size()) return (uint32_t)-1;
-  for(uint32_t i = hash_ptr(ptr); VALID_TABLE_ENTRY(table[i]); i = (i+1) & table_mask)
+  if ((uintptr_t)ptr < (uintptr_t)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)&__heap_base + emscripten_get_heap_size()) return (uint32_t)-1;
+  for(uint32_t i = hash_ptr(ptr); table[i].ptr; i = (i+1) & table_mask)
     if (table[i].ptr == ptr) return i;
   return (uint32_t)-1;
 }
@@ -85,7 +89,7 @@ static void realloc_table()
   num_table_entries = num_allocs; // The hash table is tight again now with no dirty entries.
 }
 
-extern "C" void *gc_malloc(size_t bytes)
+void *gc_malloc(size_t bytes)
 {
   void *ptr = malloc(bytes);
   if (!ptr) return 0;
@@ -101,20 +105,20 @@ extern "C" void *gc_malloc(size_t bytes)
 
 static void free_at_index(uint32_t i)
 {
-//  printf("Freeing managed ptr %p at index %u\n", table[i].ptr, i);
-  assert(VALID_TABLE_ENTRY(table[i]));
+  assert((uintptr_t)table[i].ptr > 1);
   free(table[i].ptr);
   table[i].ptr = (void*)1;
   BITVEC_CLEAR(used_table, i);
   --num_allocs;  
 }
 
-extern "C" void gc_free(void *ptr)
+void gc_free(void *ptr)
 {
   if (!ptr) return;
   uint32_t i = find_index(ptr);
   if (i == (uint32_t)-1) return;
   free_at_index(i);
+  gc_unmake_root(ptr);
 }
 
 static void mark(void *ptr, size_t bytes)
@@ -151,16 +155,27 @@ static void sweep()
   }
 }
 
-extern "C" void gc_collect()
+extern void **gc_roots;
+extern uint32_t gc_roots_mask;
+
+void gc_collect()
 {
   memcpy(mark_table, used_table, (table_mask+1)>>3);
 
+#ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
   EM_ASM({console.log("Marking static data.")});
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
+#endif
 
   EM_ASM({console.log("Marking stack.")});
   uintptr_t stack_bottom = emscripten_stack_get_current();
   mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
+
+  if (gc_roots)
+  {
+    EM_ASM({console.log("Marking roots.")});
+    mark((void*)gc_roots, (gc_roots_mask+1)*sizeof(void*));
+  }
 
   EM_ASM({console.log("Sweeping..")});
   sweep();
@@ -169,15 +184,24 @@ extern "C" void gc_collect()
   if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
 }
 
-extern "C" void gc_dump()
+static void collect_when_stack_is_empty(void *unused)
 {
-  for(uint32_t i = 0; i <= table_mask; ++i)
-    if (VALID_TABLE_ENTRY(table[i]))
-      printf("Table %u: %p\n", i, table[i].ptr);
-  printf("%u allocations total, %u used table entries. Table size: %u\n", num_allocs, num_table_entries, table_mask+1);
+  gc_collect(); // We know 100% we won't have any managed pointers on the stack frame now.
 }
 
-extern "C" uint32_t gc_num_ptrs()
+void gc_collect_when_stack_is_empty()
+{
+  emscripten_set_timeout(collect_when_stack_is_empty, 0, 0);
+}
+
+uint32_t gc_num_ptrs()
 {
   return num_allocs;
+}
+
+void gc_dump()
+{
+  for(uint32_t i = 0; i <= table_mask; ++i)
+    if ((uintptr_t)table[i].ptr > 1) EM_ASM({console.log(`Table index ${$0}: 0x${$1.toString(16)}`);}, i, table[i].ptr);
+  EM_ASM({console.log(`${$0} allocations total, ${$1} used table entries. Table size: ${$2}`);}, num_allocs, num_table_entries, table_mask+1);
 }

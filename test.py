@@ -1,4 +1,4 @@
-import glob, subprocess
+import glob, subprocess, sys
 modes = []
 
 for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
@@ -6,9 +6,15 @@ for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
     for m in ['-sMALLOC=dlmalloc', '-sMALLOC=emmalloc']:
       modes += [[o, i, m]]
 
-tests = glob.glob('test/*.cpp')
+# Uncomment for quick testing in -O0 suite.
+#modes = [['-O0']]
 
-cmd = ['em++.bat', 'emgc.cpp', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers']
+tests = glob.glob('test/*.c')
+if len(sys.argv) > 1:
+  sub = sys.argv[1]
+  tests = filter(lambda t: sub in t, tests)
+
+cmd = ['emcc.bat', 'emgc.c', 'emgc-roots.c', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers']
 
 failures = []
 passes = 0
