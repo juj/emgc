@@ -4,10 +4,10 @@ modes = []
 for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
   for i in ['', '-fno-inline-functions']:
     for m in ['-sMALLOC=dlmalloc', '-sMALLOC=emmalloc']:
-      for m in ['', '-msimd128']:
-        modes += [[o, i, m]]
+      for s in ['', '-msimd128']:
+        modes += [[o, i, m, s]]
 
-# Uncomment for quick testing in -O0 suite.
+# Uncomment for quick testing in one mode.
 modes = [['-O3']]
 
 tests = glob.glob('test/*.c')
