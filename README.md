@@ -73,9 +73,7 @@ To disable automatic static data marking, pass the define `-DEMGC_SKIP_AUTOMATIC
 
 ### Roots and Leaves
 
-Managed allocations may be specialized into two flavors: roots and leaves.
-
-A managed allocation may be declared as a **root allocation** with the `gc_make_root(ptr)` function. A root allocation is one that is always assumed to be reachable by the collector, and will never be freed by automatically by the GC process. A manual call to `gc_free(ptr)` is required to free a root allocation. For example:
+A managed allocation may be declared as a **root allocation** with the `gc_make_root(ptr)` function. A root allocation is always assumed to be reachable by the collector, and will never be freed by `gc_collect()`. A manual call to `gc_free(ptr)` is required to free a root allocation. For example:
 
 ```c
 #include "emgc.h"
@@ -95,6 +93,9 @@ int main()
 During garbage collection, all root pointers are always scanned.
 
 Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, the above code will not free up any memory, since `global` is declared to be a root, and it references the second allocation, so both are kept alive.
+
+The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation.
+
 
 ### Stack Scanning
 
