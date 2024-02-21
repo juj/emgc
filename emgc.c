@@ -18,12 +18,7 @@
 size_t malloc_usable_size(void*);
 extern char __global_base, __data_end, __heap_base;
 
-typedef struct gc_alloc
-{
-  void *ptr;
-} gc_alloc;
-
-static gc_alloc *table;
+static void **table;
 static uint8_t *mark_table, *used_table;
 static uint32_t num_allocs, num_table_entries, table_mask;
 
@@ -43,8 +38,8 @@ static uint32_t find_insert_index(void *ptr)
 static uint32_t find_index(void *ptr)
 {
   if ((uintptr_t)ptr < (uintptr_t)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)&__heap_base + emscripten_get_heap_size()) return (uint32_t)-1;
-  for(uint32_t i = hash_ptr(ptr); table[i].ptr; i = (i+1) & table_mask)
-    if (table[i].ptr == ptr) return i;
+  for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
+    if (table[i] == ptr) return i;
   return (uint32_t)-1;
 }
 
@@ -62,8 +57,8 @@ static void realloc_table()
     mark_table = (uint8_t*)malloc(((table_mask+1)>>3)*sizeof(uint8_t));
   }
 
-  gc_alloc *old_table = table;
-  table = (gc_alloc*)calloc(table_mask+1, sizeof(gc_alloc));
+  void **old_table = table;
+  table = (void*)calloc(table_mask+1, sizeof(void*));
 
   uint64_t *old_used_table = (uint64_t *)used_table;
   used_table = (uint8_t*)calloc((table_mask+1)>>3, sizeof(uint8_t));
@@ -78,7 +73,7 @@ static void realloc_table()
       i += offset;
       bits = (bits >> offset) ^ 1;
 
-      uint32_t new_index = find_insert_index(old_table[i].ptr);
+      uint32_t new_index = find_insert_index(old_table[i]);
       table[new_index] = old_table[i];
       BITVEC_SET(used_table, new_index);
     }
@@ -97,7 +92,7 @@ void *gc_malloc(size_t bytes)
   ++num_table_entries;
   if (2*num_table_entries >= table_mask) realloc_table();
   uint32_t i = find_insert_index(ptr);
-  table[i].ptr = ptr;
+  table[i] = ptr;
   BITVEC_SET(used_table, i);
   EM_ASM({console.log(`gc_malloc: Allocated ptr ${$0.toString(16)}`)}, ptr);
   return ptr;
@@ -105,9 +100,9 @@ void *gc_malloc(size_t bytes)
 
 static void free_at_index(uint32_t i)
 {
-  assert((uintptr_t)table[i].ptr > 1);
-  free(table[i].ptr);
-  table[i].ptr = (void*)1;
+  assert((uintptr_t)table[i] > 1);
+  free(table[i]);
+  table[i] = (void*)1;
   BITVEC_CLEAR(used_table, i);
   --num_allocs;  
 }
@@ -202,6 +197,6 @@ uint32_t gc_num_ptrs()
 void gc_dump()
 {
   for(uint32_t i = 0; i <= table_mask; ++i)
-    if ((uintptr_t)table[i].ptr > 1) EM_ASM({console.log(`Table index ${$0}: 0x${$1.toString(16)}`);}, i, table[i].ptr);
+    if ((uintptr_t)table[i] > 1) EM_ASM({console.log(`Table index ${$0}: 0x${$1.toString(16)}`);}, i, table[i]);
   EM_ASM({console.log(`${$0} allocations total, ${$1} used table entries. Table size: ${$2}`);}, num_allocs, num_table_entries, table_mask+1);
 }
