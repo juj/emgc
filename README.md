@@ -57,7 +57,10 @@ See the following sections for more detailed information on Emgc:
  - [Pointer Identification](#pointer-identification)
  - [Global Memory Scanning](#global-memory-scanning)
  - [Roots and Leaves](#roots-and-leaves)
+   - [Roots](#roots)
+   - [Leaves](#leaves)
  - [Stack Scanning](#stack-scanning)
+   - [Quadratic Memory Usage](#quadratic-memory-usage)
 
 ### Pointer Identification
 
@@ -74,6 +77,8 @@ This is convenient for getting started, although in a larger application, the st
 To disable automatic static data marking, pass the define `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1` when compiling `emgc.c`.
 
 ### Roots and Leaves
+
+Managed allocations can be seen in three flavors: regular, roots, and leaves.
 
 #### Roots
 A managed allocation may be declared as a **root allocation** with the `gc_make_root(ptr)` function. A root allocation is always assumed to be reachable by the collector, and will never be freed by `gc_collect()`. A manual call to `gc_free(ptr)` is required to free a root allocation. For example:
@@ -151,7 +156,7 @@ Both modes come with drawbacks:
 
 - In the collect-only-when-stack-is-empty mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha, see the next section on memory usage.
 
-### Quadratic Memory Usage
+#### Quadratic Memory Usage
 
 Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-only-when-stack-is-empty stack scanning scheme. For example, the following code:
 
