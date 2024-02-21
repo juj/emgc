@@ -64,7 +64,9 @@ See the following sections for more detailed information on Emgc:
 
 ### Pointer Identification
 
-During marking, Emgc scans raw memory regions to identify any values that could look like managed pointers. This process requires that all pointer values are stored at aligned addresses, i.e. at addresses that are multiples of 4 in a 32-bit build, and at multiples of 8 in a 64-bit build. Pointers that would be stored at unaligned addresses would go undetected by the marking process.
+During marking, Emgc scans raw memory regions to identify any values that could look like managed pointers. This process requires that all pointer values are stored at aligned addresses, i.e. at addresses that are multiples of 4 in a 32-bit build, and at multiples of 8 in a 64-bit build. Pointers that would be stored at unaligned addresses would go undetected by the marking process (with catastrophic consequences).
+
+This kind of scanning of GC pointers from is **conservative** and can cause **false positives**, though note that there are ways to address this, to make collection be precise. (TODO: document)
 
 All pointers need to point to the starting address of the memory buffer. Emgc does not detect pointers that point to the interior address of a managed allocation.
 
@@ -122,9 +124,11 @@ int main()
 }
 ```
 
-The functions `gc_malloc_root(bytes)` and `gc_malloc_leaf(bytes)` are provided for convenientlyr allocating root or leaf memory in one call.
+The functions `gc_malloc_root(bytes)` and `gc_malloc_leaf(bytes)` are provided for conveniently allocating root or leaf memory in one call.
 
 While it is technically possible to make an allocation simultaneously be both a root and a leaf, it is more optimal to just use regular `malloc()` + `free()` API for such allocations.
+
+Note that while declaring GC allocations as leaves is a performance aid, declaring roots is required for correct GC behavior in your program.
 
 ### Stack Scanning
 
