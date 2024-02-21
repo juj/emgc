@@ -55,7 +55,7 @@ Additionally, you must choose one of the two possible stack scanning modes in or
 
 See the following sections for more detailed information on Emgc:
  - [Pointer Identification](#pointer-identification)
- - [Global Memory](#global-memory)
+ - [Global Memory Scanning](#global-memory-scanning)
  - [Roots and Leaves](#roots-and-leaves)
  - [Stack Scanning](#stack-scanning)
 
@@ -65,7 +65,7 @@ During marking, Emgc scans raw memory regions to identify any values that could 
 
 All pointers need to point to the starting address of the memory buffer. Emgc does not detect pointers that point to the interior address of a managed allocation.
 
-### Global Memory
+### Global Memory Scanning
 
 By default, Emgc scans (i.e. marks) all static data (the memory area holding global variables) during garbage collection to find managed pointers.
 
@@ -75,6 +75,7 @@ To disable automatic static data marking, pass the define `-DEMGC_SKIP_AUTOMATIC
 
 ### Roots and Leaves
 
+#### Roots
 A managed allocation may be declared as a **root allocation** with the `gc_make_root(ptr)` function. A root allocation is always assumed to be reachable by the collector, and will never be freed by `gc_collect()`. A manual call to `gc_free(ptr)` is required to free a root allocation. For example:
 
 ```c
@@ -96,7 +97,9 @@ During garbage collection, all root pointers are always scanned.
 
 Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, the above code will not free up any memory, since `global` is declared to be a root, and it references the second allocation, so both are kept alive.
 
-The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation.
+The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation. (it is not necessary to do this before `gc_free()`ing the pointer)
+
+#### Leaves
 
 A **leaf allocation** is one that is guaranteed by the user to not contain any pointers to other managed allocations. If you are allocating large blocks of GC memory, say, for strings or images, that will never contain managed pointers, it is a good idea to mark those allocations as leaves. The `gc_collect()` function will skip scanning any leaf objects, improving runtime performance.
 
@@ -146,9 +149,11 @@ Both modes come with drawbacks:
 
 - The --spill-pointers mode reduces performance and increases code size, since every function local variable that might be a pointer needs to be shadow copied to the LLVM data stack. This overhead can be prohibitive.
 
-- In the collect-only-when-stack-is-empty mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha:
+- In the collect-only-when-stack-is-empty mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha, see the next section on memory usage.
 
-Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-only-when-stack-is-empty scheme. For example, the following code:
+### Quadratic Memory Usage
+
+Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-only-when-stack-is-empty stack scanning scheme. For example, the following code:
 
 ```c
 char *linear_or_quadratic_memory_use()
@@ -168,9 +173,9 @@ char *linear_or_quadratic_memory_use()
 }
 ```
 
-The above code generates a long string by concatenating `"foo"` 10000 times. If the heap is about to run out of memory, `gc_malloc()` can collect garbage on demand if building with the `--spill-pointers` flag. This means that the above code will first consume some amount of temporary memory (as the available heap size permits), which will be promptly collected, and then finally the code persists `10000 * strlen("foo")+1` == `30001 bytes` of memory for the string at the end of the function.
+The above code generates a long string by concatenating `"foo"` 10000 times. If the heap is about to run out of memory, `gc_malloc()` can collect garbage on demand if running with the `--spill-pointers` flag mode. This means that the above code will first consume some amount of temporary memory (as the available heap size permits), which will be promptly collected, and then finally the code persists `10000 * strlen("foo")+1` == `30001 bytes` of memory for the string at the end of the function.
 
-If emgc is operating in only-collect-when-stack-is-empty mode, the above code will instead require there to be `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
+If Emgc is operating in only-collect-when-stack-is-empty mode, the above code will temporarily require `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
 
 The recommendation here is hence to be extremely cautious of containers and strings when building without `--spill-pointers`. It is advisable to perform std::vector style **geometric capacity growths** of memory for containers and strings when compiling under this mode to mitigate the quadratic memory growth issue.
 
