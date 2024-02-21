@@ -14,6 +14,8 @@
 #define BITVEC_SET(arr, i)   ((arr)[(i)>>3] |=   1<<((i)&7))
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
 #define IS_ALIGNED(ptr, size) (((uintptr_t)(ptr) & ((size)-1)) == 0)
+#define REMOVE_FLAG_BITS(ptr) ((void*)((uintptr_t)(ptr) & ~(uintptr_t)7))
+#define SENTINEL_PTR ((void*)31)
 
 size_t malloc_usable_size(void*);
 extern char __global_base, __data_end, __heap_base;
@@ -39,7 +41,7 @@ static uint32_t find_index(void *ptr)
 {
   if ((uintptr_t)ptr < (uintptr_t)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)&__heap_base + emscripten_get_heap_size()) return (uint32_t)-1;
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
-    if (table[i] == ptr) return i;
+    if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
   return (uint32_t)-1;
 }
 
@@ -100,9 +102,9 @@ void *gc_malloc(size_t bytes)
 
 static void free_at_index(uint32_t i)
 {
-  assert((uintptr_t)table[i] > 1);
-  free(table[i]);
-  table[i] = (void*)1;
+  assert(table[i] > SENTINEL_PTR);
+  free(REMOVE_FLAG_BITS(table[i]));
+  table[i] = SENTINEL_PTR;
   BITVEC_CLEAR(used_table, i);
   --num_allocs;  
 }
@@ -197,6 +199,6 @@ uint32_t gc_num_ptrs()
 void gc_dump()
 {
   for(uint32_t i = 0; i <= table_mask; ++i)
-    if ((uintptr_t)table[i] > 1) EM_ASM({console.log(`Table index ${$0}: 0x${$1.toString(16)}`);}, i, table[i]);
+    if (table[i] > SENTINEL_PTR) EM_ASM({console.log(`Table index ${$0}: 0x${$1.toString(16)}`);}, i, table[i]);
   EM_ASM({console.log(`${$0} allocations total, ${$1} used table entries. Table size: ${$2}`);}, num_allocs, num_table_entries, table_mask+1);
 }
