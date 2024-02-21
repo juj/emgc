@@ -16,6 +16,7 @@
 #define IS_ALIGNED(ptr, size) (((uintptr_t)(ptr) & ((size)-1)) == 0)
 #define REMOVE_FLAG_BITS(ptr) ((void*)((uintptr_t)(ptr) & ~(uintptr_t)7))
 #define SENTINEL_PTR ((void*)31)
+#define PTR_LEAF_BIT ((uintptr_t)1)
 
 size_t malloc_usable_size(void*);
 extern char __global_base, __data_end, __heap_base;
@@ -100,6 +101,34 @@ void *gc_malloc(size_t bytes)
   return ptr;
 }
 
+void gc_make_leaf(void *ptr)
+{
+  uint32_t i = find_index(ptr);
+  if (i == (uint32_t)-1) return;
+  table[i] = (void*)((uintptr_t)table[i] | PTR_LEAF_BIT);
+}
+
+void gc_unmake_leaf(void *ptr)
+{
+  uint32_t i = find_index(ptr);
+  if (i == (uint32_t)-1) return;
+  table[i] = (void*)((uintptr_t)table[i] & ~PTR_LEAF_BIT);
+}
+
+void *gc_malloc_root(size_t bytes)
+{
+  void *ptr = gc_malloc(bytes);
+  gc_make_root(ptr);
+  return ptr;
+}
+
+void *gc_malloc_leaf(size_t bytes)
+{
+  void *ptr = gc_malloc(bytes);
+  gc_make_leaf(ptr);
+  return ptr;
+}
+
 static void free_at_index(uint32_t i)
 {
   assert(table[i] > SENTINEL_PTR);
@@ -130,7 +159,8 @@ static void mark(void *ptr, size_t bytes)
     {
       EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
       BITVEC_CLEAR(mark_table, i);
-      mark(*p, malloc_usable_size(*p));
+      if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
+        mark(*p, malloc_usable_size(*p));
     }
   }
 }

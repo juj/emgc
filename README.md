@@ -96,6 +96,25 @@ Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, t
 
 The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation.
 
+A **leaf allocation** is one that is guaranteed by the user to not contain any pointers to other managed allocations. If you are allocating large blocks of GC memory, say, for strings or images, that will never contain managed pointers, it is a good idea to mark those allocations as leaves. The `gc_collect()` function will skip scanning any leaf objects, improving runtime performance.
+
+Use the functions `gc_make_leaf(ptr)` and `gc_unmake_leaf(ptr)`. For example:
+
+```c
+#include "emgc.h"
+
+int main()
+{
+    char *string = (char*)gc_malloc(1048576);
+    gc_make_leaf(string);
+
+    gc_collect(); // will not scan contents of 'string'.
+}
+```
+
+The functions `gc_malloc_root(bytes)` and `gc_malloc_leaf(bytes)` are provided for convenientlyr allocating root or leaf memory in one call.
+
+While it is technically possible to make an allocation simultaneously be both a root and a leaf, it is more optimal to just use regular `malloc()` + `free()` API for such allocations.
 
 ### Stack Scanning
 
