@@ -147,6 +147,9 @@ void gc_free(void *ptr)
   gc_unmake_root(ptr);
 }
 
+#ifdef __wasm_simd128__
+#include "emgc-simd.c"
+#else
 static void mark(void *ptr, size_t bytes)
 {
   EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
@@ -164,6 +167,7 @@ static void mark(void *ptr, size_t bytes)
     }
   }
 }
+#endif
 
 static void sweep()
 {

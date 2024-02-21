@@ -4,17 +4,18 @@ modes = []
 for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
   for i in ['', '-fno-inline-functions']:
     for m in ['-sMALLOC=dlmalloc', '-sMALLOC=emmalloc']:
-      modes += [[o, i, m]]
+      for m in ['', '-msimd128']:
+        modes += [[o, i, m]]
 
 # Uncomment for quick testing in -O0 suite.
-#modes = [['-O0']]
+modes = [['-O3']]
 
 tests = glob.glob('test/*.c')
 if len(sys.argv) > 1:
   sub = sys.argv[1]
   tests = filter(lambda t: sub in t, tests)
 
-cmd = ['emcc.bat', 'emgc.c', 'emgc-roots.c', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers']
+cmd = ['emcc.bat', 'emgc.c', 'emgc-roots.c', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']
 
 failures = []
 passes = 0
