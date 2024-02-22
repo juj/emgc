@@ -183,9 +183,9 @@ However, there is a challenge: because WebAssembly places most of its function l
 
 To remedy this, opt in to one of two choices:
 
-1. At final Wasm link stage, specify the linker flag `-sBINARYEN_EXTRA_PASSES=--spill-pointers`. This causes the Binaryen optimizer to perform a special pointer spilling codegen pass, that will cause anything that looks like a pointer to be explicitly spilled on to the LLVM data stack, in all functions of the program. This way all the managed pointers will be guaranteed to be observable by Emgc when it is scanning the LLVM data stack, making it safe to call `gc_collect()` at any stage of the program.
+1. **--spill-pointers mode**: At the final Wasm link stage, specify the linker flag `-sBINARYEN_EXTRA_PASSES=--spill-pointers`. This causes the Binaryen optimizer to perform a special pointer spilling codegen pass, that will cause anything that looks like a pointer to be explicitly spilled on to the LLVM data stack, in all functions of the program. This way all the managed pointers will be guaranteed to be observable by Emgc when it is scanning the LLVM data stack, making it safe to call `gc_collect()` at any stage of the program.
 
-2. Alternatively, ensure that you will never call `gc_collect()` when there could potentially exist managed pointers on the stack. A good strategy to deploy this mode is to call the JS `setTimeout()` function to only ever asynchronously invoke a garbage collection in a separate event handler after the stack is empty. The `gc_collect_when_stack_is_empty()` function is provided to conveniently do this. For example:
+2. **collect-only-when-stack-is-empty mode**: Alternatively, ensure that you will never call `gc_collect()` when there could potentially exist managed pointers on the stack. A good strategy to deploy this mode is to call the JS `setTimeout()` function to only ever asynchronously invoke a garbage collection in a separate event handler after the stack is empty. The `gc_collect_when_stack_is_empty()` function is provided to conveniently do this. For example:
 
 ```c
 #include "emgc.h"
