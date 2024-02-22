@@ -46,7 +46,7 @@ To identify which GC allocations are no longer reachable by the program and thus
 In the Mark phase of this process, the
   1) program stack,
   2) the global data section, and
-  3) other explicitly declared root regions
+  3) any explicitly declared root pointers
 
 are scanned to find managed pointers that the program code can still reference (i.e. are *"reachable"* or *"alive"*). Then the memory regions of each reachable pointer are further scanned to identify more managed pointers that are still reachable, and so on, finally resulting in a full set of managed allocations still referenceable by the program code.
 
