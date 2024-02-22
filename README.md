@@ -182,6 +182,8 @@ Weak pointers have slightly different semantics to strong pointers:
  - To test if a pointer represents a strong pointer, call the function `gc_is_strong_ptr(ptr)`.
  - The null pointer is considered **both** a weak and a strong pointer.
 
+Note that unlike root and leaf properties that are properties of the allocation itself, weak vs strong pointers are a property of the pointer. A single GC allocation can have a combination of several strong and weak pointers pointing to it.
+
 Internally weak pointers are implemented via *pointer disguising*, which makes the marking process skip over them.
 
 ### 📚 Stack Scanning
