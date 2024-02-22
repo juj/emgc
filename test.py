@@ -3,9 +3,10 @@ modes = []
 
 for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
   for i in ['', '-fno-inline-functions']:
-    for m in ['-sMALLOC=dlmalloc', '-sMALLOC=emmalloc']:
-      for s in ['', '-msimd128']:
-        modes += [[o, i, m, s]]
+    for d in ['', '-DNDEBUG']:
+      for m in ['-sMALLOC=dlmalloc', '-sMALLOC=emmalloc']:
+        for s in ['', '-msimd128']:
+          modes += [[o, d, i, m, s]]
 
 # Uncomment for quick testing in one mode.
 modes = [['-O3']]
