@@ -15,6 +15,7 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
    - [Weak Pointers](#-weak-pointers)
    - [Stack Scanning](#-stack-scanning)
      - [Quadratic Memory Usage](#𝕏-quadratic-memory-usage)
+   - [Finalizer Support](#-finalizer-support)
    - [WebAssembly SIMD](#-webassembly-simd)
  - [Testing](#-testing)
 
@@ -240,6 +241,38 @@ The above code generates a long string by concatenating `"foo"` 10000 times. If 
 If Emgc is operating in only-collect-when-stack-is-empty mode, the above code will temporarily require `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
 
 The recommendation here is hence to be extremely cautious of containers and strings when building without `--spill-pointers`. It is advisable to perform std::vector style **geometric capacity growths** of memory for containers and strings when compiling under this mode to mitigate the quadratic memory growth issue.
+
+### 🪦 Finalizer Support
+
+It is possible to register a finalizer callback to be run before a lost GC object is freed. Use the function `gc_register_finalizer(ptr, callback)` for this purpose. Example:
+
+```c
+#include "emgc.h"
+#include <stdio.h>
+
+void my_finalizer(void *ptr)
+{
+  printf("This GC object is getting freed.\n");
+}
+
+void work()
+{
+  void *ptr = (char*)gc_malloc(1024);
+  gc_register_finalizer(ptr, my_finalizer);
+}
+
+int main()
+{
+  work();
+  gc_collect(); // Calls my_finalizer callback before gc_free()ing the ptr.
+}
+```
+
+Finalizers are called on GC objects in an unspecified order. A finalizer can resurrect the GC pointer it is called on, or other GC pointers that would be about to be lost.
+
+It is assumed that the presence of objects with finalizers is rare. Reclaiming objects with finalizers will have a delaying effect on garbage collection, and multiple calls to `gc_collect()` may be needed to observe the invocations of all finalizable objects.
+
+If an object resurrects itself during finalization, its finalizer will be reset and will not be called again when the object actually is freed.
 
 ### 🔢 WebAssembly SIMD
 
