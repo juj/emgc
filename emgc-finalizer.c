@@ -79,6 +79,6 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
   }
   insert_finalizer(ptr, finalizer);
 
-  uint32_t i = gc_find_index(ptr);
+  uint32_t i = find_index(ptr);
   table[i] = (void*)((uintptr_t)table[i] | PTR_FINALIZER_BIT);
 }
