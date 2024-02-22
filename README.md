@@ -52,7 +52,7 @@ are scanned to find managed pointers that the program code can still reference (
 
 Then a Sweep phase of the garbage collection process frees up all GC allocations that were not found (not marked) during the search, and thus no longer reachable.
 
-Additionally, Emgc does support manual freeing of GC memory, even though that is not necessary. I.e. just like with `malloc()` and `free()`, it is possible to manually call `gc_free()` on a pointer:
+Additionally, Emgc does support manual freeing of GC memory, even though that is not necessary. I.e. just like with `malloc()` and `free()`, it is possible to manually call `gc_free()` on a GC pointer:
 
 ```c
 #include "emgc.h"
