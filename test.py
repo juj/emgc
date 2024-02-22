@@ -10,9 +10,7 @@ for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
             modes += [[o, d, i, m, s, l]]
 
 # Uncomment for quick testing in one mode.
-modes = [['-O3']]
-
-# '-g2', '-DNDEBUG', '-mbulk-memory', '-sMALLOC=emmalloc', '-msimd128', '-flto'
+modes = [['-O3', '-g2', '-DNDEBUG', '-mbulk-memory', '-sMALLOC=emmalloc', '-msimd128', '-flto']]
 
 tests = glob.glob('test/*.c')
 if len(sys.argv) > 1:
