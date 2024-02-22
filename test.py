@@ -15,7 +15,7 @@ if len(sys.argv) > 1:
   sub = sys.argv[1]
   tests = filter(lambda t: sub in t, tests)
 
-cmd = ['emcc.bat', 'emgc.c', 'emgc-roots.c', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']
+cmd = ['emcc.bat', 'emgc.c', 'emgc-roots.c', 'emgc-weak.c', '-o', 'a.js', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']
 
 failures = []
 passes = 0

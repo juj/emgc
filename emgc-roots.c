@@ -44,3 +44,10 @@ void gc_unmake_root(void *ptr)
       return;
     }
 }
+
+void *gc_malloc_root(size_t bytes)
+{
+  void *ptr = gc_malloc(bytes);
+  gc_make_root(ptr);
+  return ptr;
+}

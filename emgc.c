@@ -13,7 +13,6 @@
 #define BITVEC_GET(arr, i)  (((arr)[(i)>>3] &    1<<((i)&7)) != 0)
 #define BITVEC_SET(arr, i)   ((arr)[(i)>>3] |=   1<<((i)&7))
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
-#define IS_ALIGNED(ptr, size) (((uintptr_t)(ptr) & ((size)-1)) == 0)
 #define REMOVE_FLAG_BITS(ptr) ((void*)((uintptr_t)(ptr) & ~(uintptr_t)7))
 #define SENTINEL_PTR ((void*)31)
 #define PTR_LEAF_BIT ((uintptr_t)1)
@@ -38,7 +37,7 @@ static uint32_t find_insert_index(void *ptr)
   return (i64<<6) + __builtin_ctzll(~u);
 }
 
-static uint32_t find_index(void *ptr)
+uint32_t gc_find_index(void *ptr)
 {
   if ((uintptr_t)ptr < (uintptr_t)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)&__heap_base + emscripten_get_heap_size()) return (uint32_t)-1;
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
@@ -103,23 +102,16 @@ void *gc_malloc(size_t bytes)
 
 void gc_make_leaf(void *ptr)
 {
-  uint32_t i = find_index(ptr);
+  uint32_t i = gc_find_index(ptr);
   if (i == (uint32_t)-1) return;
   table[i] = (void*)((uintptr_t)table[i] | PTR_LEAF_BIT);
 }
 
 void gc_unmake_leaf(void *ptr)
 {
-  uint32_t i = find_index(ptr);
+  uint32_t i = gc_find_index(ptr);
   if (i == (uint32_t)-1) return;
   table[i] = (void*)((uintptr_t)table[i] & ~PTR_LEAF_BIT);
-}
-
-void *gc_malloc_root(size_t bytes)
-{
-  void *ptr = gc_malloc(bytes);
-  gc_make_root(ptr);
-  return ptr;
 }
 
 void *gc_malloc_leaf(size_t bytes)
@@ -141,7 +133,7 @@ static void free_at_index(uint32_t i)
 void gc_free(void *ptr)
 {
   if (!ptr) return;
-  uint32_t i = find_index(ptr);
+  uint32_t i = gc_find_index(ptr);
   if (i == (uint32_t)-1) return;
   free_at_index(i);
   gc_unmake_root(ptr);
@@ -157,7 +149,7 @@ static void mark(void *ptr, size_t bytes)
   assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
   {
-    uint32_t i = find_index(*p);
+    uint32_t i = gc_find_index(*p);
     if (i != (uint32_t)-1 && BITVEC_GET(mark_table, i))
     {
       EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
@@ -223,35 +215,6 @@ static void collect_when_stack_is_empty(void *unused)
 void gc_collect_when_stack_is_empty()
 {
   emscripten_set_timeout(collect_when_stack_is_empty, 0, 0);
-}
-
-int gc_is_weak_ptr(void *ptr)
-{
-  return !ptr || !IS_ALIGNED(ptr, 8);
-}
-
-int gc_is_strong_ptr(void *ptr)
-{
-  return IS_ALIGNED(ptr, 8);
-}
-
-void *gc_get_weak_ptr(void *strong_ptr)
-{
-  if (gc_is_weak_ptr(strong_ptr)) return strong_ptr; // Already a weak ptr?
-  return (void*)((uintptr_t)strong_ptr - 1);
-}
-
-void *gc_acquire_strong_ptr(void *weak_ptr)
-{
-  if (gc_is_strong_ptr(weak_ptr)) return weak_ptr; // Already a strong ptr?
-  void *strong_ptr = (void*)((uintptr_t)weak_ptr + 1);
-  return (find_index(strong_ptr) == (uint32_t)-1) ? 0 : strong_ptr;
-}
-
-int gc_weak_ptr_equals(void *weak_ptr1, void *weak_ptr2)
-{
-  if (weak_ptr1 == weak_ptr2) return 1;
-  return gc_acquire_strong_ptr(weak_ptr1) == gc_acquire_strong_ptr(weak_ptr2);
 }
 
 uint32_t gc_num_ptrs()

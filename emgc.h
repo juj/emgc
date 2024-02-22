@@ -32,6 +32,8 @@ int gc_is_strong_ptr(void *weak_or_strong_ptr);
 uint32_t gc_num_ptrs(void);
 void gc_dump(void);
 
+#define IS_ALIGNED(ptr, size) (((uintptr_t)(ptr) & ((size)-1)) == 0)
+
 #ifdef __cplusplus
 }
 #endif
