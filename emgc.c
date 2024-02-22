@@ -46,6 +46,13 @@ uint32_t gc_find_index(void *ptr)
   return (uint32_t)-1;
 }
 
+static void table_insert(void *ptr)
+{
+  uint32_t i = find_insert_index(ptr);
+  table[i] = ptr;
+  BITVEC_SET(used_table, i);
+}
+
 static void realloc_table()
 {
   uint32_t old_mask = table_mask;
@@ -66,21 +73,9 @@ static void realloc_table()
   uint64_t *old_used_table = (uint64_t *)used_table;
   used_table = (uint8_t*)calloc((table_mask+1)>>3, sizeof(uint8_t));
 
-  for(uint32_t i64 = 0; i64 < ((old_mask+1)>>6); ++i64)
-  {
-    uint64_t bits = old_used_table[i64];
-    uint32_t i = (i64<<6);
-    while(bits)
-    {
-      int offset = __builtin_ctzll(bits);
-      i += offset;
-      bits = (bits >> offset) ^ 1;
-
-      uint32_t new_index = find_insert_index(old_table[i]);
-      table[new_index] = old_table[i];
-      BITVEC_SET(used_table, new_index);
-    }
-  }
+  for(uint32_t i = 0, offset; i <= old_mask; i += 64)
+    for(uint64_t bits = old_used_table[i>>6]; bits; bits ^= (1ull<<offset))
+      table_insert(old_table[i + (offset = __builtin_ctzll(bits))]);
 
   free(old_table);
   free(old_used_table);
@@ -94,9 +89,7 @@ void *gc_malloc(size_t bytes)
   ++num_allocs;
   ++num_table_entries;
   if (2*num_table_entries >= table_mask) realloc_table();
-  uint32_t i = find_insert_index(ptr);
-  table[i] = ptr;
-  BITVEC_SET(used_table, i);
+  table_insert(ptr);
   EM_ASM({console.log(`gc_malloc: Allocated ptr ${$0.toString(16)}`)}, ptr);
   return ptr;
 }
