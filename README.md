@@ -41,9 +41,14 @@ int main()
 
 The memory returned by `gc_malloc()` are referred to as "GC allocations" or "managed pointers".
 
-To identify which GC allocations are no longer reachable by the program and thus can be freed, emgc implements a typical Mark-and-Sweep collection process.
+To identify which GC allocations are no longer reachable by the program and thus can be freed, emgc implements a typical **Mark-and-Sweep** collection process.
 
-In the Mark phase of this process, the program stack, the global data section, and other declared root regions are scanned to find managed pointers that the program code can still reference (i.e. are *"reachable"* or *"alive"*). Then the memory regions of each reachable pointer are further scanned to identify more managed pointers that are still reachable, and so on, finally resulting in a full set of managed allocations still referenceable by the program code.
+In the Mark phase of this process, the
+  1) program stack,
+  2) the global data section, and
+  3) other explicitly declared root regions
+
+are scanned to find managed pointers that the program code can still reference (i.e. are *"reachable"* or *"alive"*). Then the memory regions of each reachable pointer are further scanned to identify more managed pointers that are still reachable, and so on, finally resulting in a full set of managed allocations still referenceable by the program code.
 
 Then a Sweep phase of the garbage collection process frees up all GC allocations that were not found (not marked) during the search, and thus no longer reachable.
 
