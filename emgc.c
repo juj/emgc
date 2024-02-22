@@ -15,7 +15,8 @@
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
 #define REMOVE_FLAG_BITS(ptr) ((void*)((uintptr_t)(ptr) & ~(uintptr_t)7))
 #define SENTINEL_PTR ((void*)31)
-#define PTR_LEAF_BIT ((uintptr_t)1)
+#define PTR_FINALIZER_BIT ((uintptr_t)1)
+#define PTR_LEAF_BIT ((uintptr_t)2)
 
 size_t malloc_usable_size(void*);
 extern char __global_base, __data_end, __heap_base;
@@ -139,6 +140,8 @@ void gc_free(void *ptr)
   gc_unmake_root(ptr);
 }
 
+static uint32_t num_finalizers_marked;
+
 #ifdef __wasm_simd128__
 #include "emgc-simd.c"
 #else
@@ -154,6 +157,7 @@ static void mark(void *ptr, size_t bytes)
     {
       EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
       BITVEC_CLEAR(mark_table, i);
+      num_finalizers_marked += ((uintptr_t)table[i] & PTR_FINALIZER_BIT);
       if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
         mark(*p, malloc_usable_size(*p));
     }
@@ -161,21 +165,19 @@ static void mark(void *ptr, size_t bytes)
 }
 #endif
 
+#include "emgc-finalizer.c"
+
 static void sweep()
 {
   uint64_t *marks = (uint64_t*)mark_table;
-  for(uint32_t i64 = 0; i64 < ((table_mask+1)>>6); ++i64)
-  {
-    uint64_t bits = marks[i64];
-    uint32_t i = (i64<<6);
-    while(bits)
-    {
-      int offset = __builtin_ctzll(bits);
-      i += offset;
-      bits = (bits >> offset) ^ 1;
-      free_at_index(i);
-    }
-  }
+
+  // If we didn't mark all finalizers, we know we will have GC object with
+  // finalizer to sweep. If so, find a finalizer to run.
+  if (num_finalizers_marked < num_finalizers) find_and_run_a_finalizer();
+  else // No finalizers to invoke, so perform a real sweep that frees up GC objects.
+    for(uint32_t i = 0, offset; i <= table_mask; i += 64)
+      for(uint64_t bits = marks[i>>6]; bits; bits ^= (1ull<<offset))
+        free_at_index(i + (offset = __builtin_ctzll(bits)));
 }
 
 extern void **gc_roots;
@@ -184,6 +186,7 @@ extern uint32_t gc_roots_mask;
 void gc_collect()
 {
   memcpy(mark_table, used_table, (table_mask+1)>>3);
+  num_finalizers_marked = 0;
 
 #ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
   EM_ASM({console.log("Marking static data.")});
