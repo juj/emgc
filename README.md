@@ -78,7 +78,7 @@ See the following sections for more detailed information on Emgc.
 
 During marking, Emgc scans raw memory regions to identify any values that could look like managed pointers. This process requires that all pointer values are stored at aligned addresses, i.e. at addresses that are multiples of 4 in a 32-bit build, and at multiples of 8 in a 64-bit build. Pointers that would be stored at unaligned addresses would go undetected by the marking process (with catastrophic consequences).
 
-This kind of scanning of GC pointers from is **conservative** and can cause **false positives**, though note that there are ways to address this, to make collection be precise. (TODO: document)
+This kind of scanning of GC pointers from unstructured linear memory is **conservative** and can cause **false positives** (GC pointers are mistakenly thought to be referenced, but in fact are not). Though note that there are ways to address this to make the collection precise. (TODO: document)
 
 All pointers need to point to the starting address of the memory buffer. Emgc does not detect pointers that point to the interior address of a managed allocation.
 
