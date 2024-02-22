@@ -13,14 +13,14 @@ mergeInto(LibraryManager.library, {
     HEAPU8.fill(0, _emscripten_stack_get_end()+16, _emscripten_stack_get_current());
   },
 
-  call_from_js_p__deps: ['clear_stack'],
+  call_from_js_p__deps: ['clear_stack', '$UTF8ToString'],
   call_from_js_p: function(func) {
     var ret = {{{ makeDynCall('i', 'func') }}}();
     _clear_stack();
     return ret;
   },
 
-  call_from_js_v__deps: ['clear_stack'],
+  call_from_js_v__deps: ['clear_stack', '$UTF8ToString'],
   call_from_js_v: function(func) {
     {{{ makeDynCall('v', 'func') }}}();
     _clear_stack();
