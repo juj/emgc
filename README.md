@@ -59,6 +59,7 @@ See the following sections for more detailed information on Emgc:
  - [Roots and Leaves](#roots-and-leaves)
    - [Roots](#roots)
    - [Leaves](#leaves)
+ - [Weak Pointers](#weak-pointers)
  - [Stack Scanning](#stack-scanning)
    - [Quadratic Memory Usage](#quadratic-memory-usage)
 
@@ -129,6 +130,37 @@ The functions `gc_malloc_root(bytes)` and `gc_malloc_leaf(bytes)` are provided f
 While it is technically possible to make an allocation simultaneously be both a root and a leaf, it is more optimal to just use regular `malloc()` + `free()` API for such allocations.
 
 Note that while declaring GC allocations as leaves is a performance aid, declaring roots is required for correct GC behavior in your program.
+
+### Weak Pointers
+
+Emgc provides the ability to maintain weak pointers to managed allocations. Unlike regular ("strong") GC pointers, weak pointers do not keep the GC pointers they point to alive.
+
+A weak pointer is tracked as a `void *` pointer, and cannot be directly dereferenced (so do not type cast it to any other type, e.g. `char*` or similar).
+
+To convert a strong GC pointer to a weak pointer, call the function `gc_get_weak_ptr(ptr)`. Example:
+
+```c
+#include "emgc.h"
+
+int main()
+{
+    char *data = (char*)gc_malloc(100);
+    void *weak = gc_get_weak_ptr(data);
+    data = 0;
+
+    gc_collect(); // may free 'data', since only a weak reference to it remains.
+    if (gc_weak_ptr_equals(weak, 0))
+      printf("Weak pointer got GCd!");
+}
+```
+
+Weak pointers have slightly different semantics to strong pointers:
+ - Do not compare weak pointers against other pointers, **not even to null**. Instead use the function `gc_weak_ptr_equals(ptr1, ptr2);` where `ptr1` and `ptr2` may be weak or strong pointers, or null.
+ - Do not type cast weak pointers to dereference them.
+ - To dereference a weak pointer, it must be turned back to a strong pointer first by calling `gc_acquire_strong_ptr(ptr)`, where `ptr` may be a weak or a strong pointer. If the object pointed to by a weak pointer has been freed, the function returns null.
+ - To test if a pointer represents a weak pointer, call the function `gc_is_weak_ptr(ptr)`.
+ - To test if a pointer represents a strong pointer, call the function `gc_is_strong_ptr(ptr)`.
+ - The null pointer is considered **both** a weak and a strong pointer.
 
 ### Stack Scanning
 
