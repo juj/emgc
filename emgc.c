@@ -141,15 +141,13 @@ static void mark(void *ptr, size_t bytes)
 
 static void sweep()
 {
-  uint64_t *marks = (uint64_t*)mark_table;
-
   // If we didn't mark all finalizers, we know we will have GC object with
   // finalizer to sweep. If so, find a finalizer to run.
   if (num_finalizers_marked < num_finalizers) find_and_run_a_finalizer();
   else // No finalizers to invoke, so perform a real sweep that frees up GC objects.
     for(uint32_t i = 0, offset; i <= table_mask; i += 64)
-      for(uint64_t bits = marks[i>>6]; bits; bits ^= (1ull<<offset))
-        free_at_index(i + (offset = __builtin_ctzll(bits)));
+      for(uint64_t b = ((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
+        free_at_index(i + (offset = __builtin_ctzll(b)));
 }
 
 void gc_collect()
