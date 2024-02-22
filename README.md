@@ -54,7 +54,7 @@ Additionally, you must choose one of the two possible stack scanning modes in or
 # Details
 
 See the following sections for more detailed information on Emgc:
- - [Pointer Identification](#pointer-identification)
+ - [Pointer Identification](#-pointer-identification)
  - [Global Memory Scanning](#global-memory-scanning)
  - [Roots and Leaves](#roots-and-leaves)
    - [Roots](#roots)
@@ -64,7 +64,7 @@ See the following sections for more detailed information on Emgc:
    - [Quadratic Memory Usage](#quadratic-memory-usage)
  - [WebAssembly SIMD](#webassembly-simd)
 
-### Pointer Identification
+### ❓ Pointer Identification
 
 During marking, Emgc scans raw memory regions to identify any values that could look like managed pointers. This process requires that all pointer values are stored at aligned addresses, i.e. at addresses that are multiples of 4 in a 32-bit build, and at multiples of 8 in a 64-bit build. Pointers that would be stored at unaligned addresses would go undetected by the marking process (with catastrophic consequences).
 
