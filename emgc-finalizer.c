@@ -28,8 +28,9 @@ static void find_and_run_a_finalizer()
       {
         table[j] = (void*)((uintptr_t)table[j] ^ PTR_FINALIZER_BIT);
         uint32_t f = find_finalizer_index(table[j]);
-        finalizers[f].finalizer(finalizers[f].ptr);
+        void *ptr = finalizers[f].ptr;
         finalizers[f].ptr = (void*)1;
+        finalizers[f].finalizer(ptr);
         --num_finalizers;
         return; // In this sweep, we are not going to do anything else.
       }
