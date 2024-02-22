@@ -67,17 +67,18 @@ static void realloc_table()
     mark_table = (uint8_t*)malloc(((table_mask+1)>>3)*sizeof(uint8_t));
   }
 
-  void **old_table = table;
-  table = (void*)calloc(table_mask+1, sizeof(void*));
-
   uint64_t *old_used_table = (uint64_t *)used_table;
-  used_table = (uint8_t*)calloc((table_mask+1)>>3, sizeof(uint8_t));
+  void **old_table = table;
 
-  for(uint32_t i = 0, offset; i <= old_mask; i += 64)
-    for(uint64_t bits = old_used_table[i>>6]; bits; bits ^= (1ull<<offset))
-      table_insert(old_table[i + (offset = __builtin_ctzll(bits))]);
+  used_table = (uint8_t*)calloc(((table_mask+1)>>3)
+                               + (table_mask+1)*sizeof(void*), sizeof(uint8_t));
+  table = (void**)(used_table + ((table_mask+1)>>3));
 
-  free(old_table);
+  if (old_table)
+    for(uint32_t i = 0, offset; i <= old_mask; i += 64)
+      for(uint64_t bits = old_used_table[i>>6]; bits; bits ^= (1ull<<offset))
+        table_insert(old_table[i + (offset = __builtin_ctzll(bits))]);
+
   free(old_used_table);
   num_table_entries = num_allocs; // The hash table is tight again now with no dirty entries.
 }
