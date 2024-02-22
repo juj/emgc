@@ -4,22 +4,22 @@ A tiny low-level research garbage collector to be used solely on the Emscripten 
 
 This is a toy project used to introspect Emscripten compiler behavior. Not for production use.
 
- - [Introduction](#introduction)
- - [Usage](#usage)
- - [Details](#details)
-   - [Pointer Identification](#-pointer-identification)
-   - [Global Memory Scanning](#-global-memory-scanning)
-   - [Roots and Leaves](#-roots-and--leaves)
-     - [Roots](#-roots)
-     - [Leaves](#-leaves)
-   - [Weak Pointers](#-weak-pointers)
-   - [Stack Scanning](#-stack-scanning)
-     - [Quadratic Memory Usage](#𝕏-quadratic-memory-usage)
-   - [Finalizer Support](#-finalizer-support)
-   - [WebAssembly SIMD](#-webassembly-simd)
- - [Testing](#-testing)
+ - [ℹ Introduction](#introduction)
+ - [📄 Usage](#usage)
+ - [🔎 Details](#details)
+   - [❓ Pointer Identification](#-pointer-identification)
+   - [🌏 Global Memory Scanning](#-global-memory-scanning)
+   - [🌱 Roots and 🍃 Leaves](#-roots-and--leaves)
+     - [🌱 Roots](#-roots)
+     - [🍃 Leaves](#-leaves)
+   - [📌 Weak Pointers](#-weak-pointers)
+   - [📚 Stack Scanning](#-stack-scanning)
+     - [𝕏² Quadratic Memory Usage](#𝕏-quadratic-memory-usage)
+   - [🪦 Finalizer Support](#-finalizer-support)
+   - [🔢 WebAssembly SIMD](#-webassembly-simd)
+ - [🧪 Running Tests](#-running-tests)
 
-# Introduction
+# ℹ Introduction
 
 Emgc provides the user the ability to do low-level `malloc()` style memory allocations that do not need to be manually `free()`d, but are garbage collected instead. Example C/C++ code:
 
@@ -65,13 +65,13 @@ int main()
 }                // force huge allocs to go away.
 ```
 
-# Usage
+# 📄 Usage
 
 To use emgc in your program, compile the file `emgc.c` along with your program code, and `#include "emgc.h"`.
 
 Additionally, you must choose one of the two possible stack scanning modes in order to use Emgc. See the section [Stack Scanning](#stack-scanning) below.
 
-# Details
+# 🔎 Details
 
 See the following sections for more detailed information on Emgc.
 
@@ -151,7 +151,7 @@ While it is technically possible to make an allocation simultaneously be both a 
 
 Note that while declaring GC allocations as leaves is a performance aid, declaring roots is required for correct GC behavior in your program.
 
-### 📎 Weak Pointers
+### 📌 Weak Pointers
 
 Emgc provides the ability to maintain weak pointers to managed allocations. Unlike regular ("strong") GC pointers, weak pointers do not keep the GC pointers they point to alive.
 
