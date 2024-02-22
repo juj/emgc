@@ -1,3 +1,4 @@
+// Functions for supporting GC roots and leaves.
 #include <stdlib.h>
 
 static void **roots;
@@ -49,5 +50,26 @@ void *gc_malloc_root(size_t bytes)
 {
   void *ptr = gc_malloc(bytes);
   gc_make_root(ptr);
+  return ptr;
+}
+
+void gc_make_leaf(void *ptr)
+{
+  uint32_t i = find_index(ptr);
+  if (i == (uint32_t)-1) return;
+  table[i] = (void*)((uintptr_t)table[i] | PTR_LEAF_BIT);
+}
+
+void gc_unmake_leaf(void *ptr)
+{
+  uint32_t i = find_index(ptr);
+  if (i == (uint32_t)-1) return;
+  table[i] = (void*)((uintptr_t)table[i] & ~PTR_LEAF_BIT);
+}
+
+void *gc_malloc_leaf(size_t bytes)
+{
+  void *ptr = gc_malloc(bytes);
+  gc_make_leaf(ptr);
   return ptr;
 }
