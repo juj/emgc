@@ -20,7 +20,7 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
 
 # Introduction
 
-Emgc provides the user the ability to do low-level `malloc()` style memory allocations do not need to be manually `free()`d, but are garbage collected instead. Example C/C++ code:
+Emgc provides the user the ability to do low-level `malloc()` style memory allocations that do not need to be manually `free()`d, but are garbage collected instead. Example C/C++ code:
 
 ```c
 #include "emgc.h"
