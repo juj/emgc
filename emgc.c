@@ -112,7 +112,9 @@ void gc_free(void *ptr)
   gc_unmake_root(ptr);
 }
 
-static uint32_t num_finalizers_marked;
+#include "emgc-weak.c"
+#include "emgc-roots.c"
+#include "emgc-finalizer.c"
 
 #ifdef __wasm_simd128__
 #include "emgc-simd.c"
@@ -136,10 +138,6 @@ static void mark(void *ptr, size_t bytes)
   }
 }
 #endif
-
-#include "emgc-weak.c"
-#include "emgc-roots.c"
-#include "emgc-finalizer.c"
 
 static void sweep()
 {

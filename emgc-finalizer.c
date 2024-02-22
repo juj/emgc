@@ -5,7 +5,7 @@ typedef struct finalizer_map
 } finalizer_map;
 
 static finalizer_map *finalizers;
-uint32_t num_finalizers, num_finalizer_entries, finalizers_mask;
+static uint32_t num_finalizers, num_finalizer_entries, finalizers_mask, num_finalizers_marked;
 
 static uint32_t hash_finalizer(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & finalizers_mask; }
 
