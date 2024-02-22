@@ -92,7 +92,7 @@ To disable automatic static data marking, pass the define `-DEMGC_SKIP_AUTOMATIC
 
 ### 🌱 Roots and 🍃 Leaves
 
-Managed allocations can be seen in three flavors: regular, roots, and leaves.
+Managed allocations can be specialized in two different ways: as roots or leaves.
 
 #### 🌱 Roots
 A managed allocation may be declared as a **root allocation** with the `gc_make_root(ptr)` function. A root allocation is always assumed to be reachable by the collector, and will never be freed by `gc_collect()`. A manual call to `gc_free(ptr)` is required to free a root allocation. For example:
