@@ -10,6 +10,7 @@
 // variables yourself, skipping automatic marking can improve performance.
 // #define EMGC_SKIP_AUTOMATIC_STATIC_MARKING
 
+#define IS_ALIGNED(ptr, size) (((uintptr_t)(ptr) & ((size)-1)) == 0)
 #define BITVEC_GET(arr, i)  (((arr)[(i)>>3] &    1<<((i)&7)) != 0)
 #define BITVEC_SET(arr, i)   ((arr)[(i)>>3] |=   1<<((i)&7))
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
