@@ -6,17 +6,17 @@ static void mark(void *ptr, size_t bytes)
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
 
-  const v128_t heap_start = wasm_u32x4_splat((uintptr_t)&__heap_base);
-  const v128_t heap_end = wasm_u32x4_splat(heap_end());
-  const v128_t bitmask = wasm_u32x4_const_splat((uintptr_t)7);
+  const v128_t mem_start = wasm_u32x4_splat((uintptr_t)&__heap_base);
+  const v128_t mem_end = wasm_u32x4_splat((uintptr_t)heap_end());
+  const v128_t align_mask = wasm_u32x4_const_splat((uintptr_t)7);
   const v128_t zero = wasm_u32x4_const_splat((uintptr_t)0);
 
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; p += 4)
   {
     v128_t ptrs = wasm_v128_load(p);
-    v128_t cmp = wasm_u32x4_gt(ptrs, heap_start);
-    cmp = wasm_v128_and(cmp, wasm_u32x4_lt(ptrs, heap_end));
-    cmp = wasm_v128_and(cmp, wasm_i32x4_eq(wasm_v128_and(ptrs, bitmask), zero));
+    v128_t cmp = wasm_u32x4_gt(ptrs, mem_start);
+    cmp = wasm_v128_and(cmp, wasm_u32x4_lt(ptrs, mem_end));
+    cmp = wasm_v128_and(cmp, wasm_i32x4_eq(wasm_v128_and(ptrs, align_mask), zero));
     if (!wasm_v128_any_true(cmp)) continue;
 
     uint32_t bits = wasm_i32x4_bitmask(cmp);
