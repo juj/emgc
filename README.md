@@ -80,7 +80,7 @@ During marking, Emgc scans raw memory regions to identify any values that could 
 
 This kind of scanning of GC pointers from unstructured linear memory is **conservative** and can cause **false positives** (GC pointers are mistakenly thought to be referenced, but in fact are not). Though note that there are ways to address this to make the collection precise. (TODO: document)
 
-All pointers need to point to the starting address of the memory buffer. Emgc does not detect pointers that point to the interior address of a managed allocation.
+All scanned pointers need to point to the starting address of the allocation, as returned by `gc_malloc()`. Emgc does not detect pointers that point to the interior address of a managed allocation.
 
 ### 🌏 Global Memory Scanning
 
