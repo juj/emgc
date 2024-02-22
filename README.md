@@ -55,10 +55,10 @@ Additionally, you must choose one of the two possible stack scanning modes in or
 
 See the following sections for more detailed information on Emgc:
  - [Pointer Identification](#-pointer-identification)
- - [Global Memory Scanning](#global-memory-scanning)
- - [Roots and Leaves](#roots-and-leaves)
-   - [Roots](#roots)
-   - [Leaves](#leaves)
+ - [Global Memory Scanning](#-global-memory-scanning)
+ - [Roots and Leaves](#-roots-and--leaves)
+   - [Roots](#-roots)
+   - [Leaves](#-leaves)
  - [Weak Pointers](#weak-pointers)
  - [Stack Scanning](#stack-scanning)
    - [Quadratic Memory Usage](#quadratic-memory-usage)
@@ -72,7 +72,7 @@ This kind of scanning of GC pointers from is **conservative** and can cause **fa
 
 All pointers need to point to the starting address of the memory buffer. Emgc does not detect pointers that point to the interior address of a managed allocation.
 
-### Global Memory Scanning
+### 🌏 Global Memory Scanning
 
 By default, Emgc scans (i.e. marks) all static data (the memory area holding global variables) during garbage collection to find managed pointers.
 
@@ -80,11 +80,11 @@ This is convenient for getting started, although in a larger application, the st
 
 To disable automatic static data marking, pass the define `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1` when compiling `emgc.c`.
 
-### Roots and Leaves
+### 🌱 Roots and 🍃 Leaves
 
 Managed allocations can be seen in three flavors: regular, roots, and leaves.
 
-#### Roots
+#### 🌱 Roots
 A managed allocation may be declared as a **root allocation** with the `gc_make_root(ptr)` function. A root allocation is always assumed to be reachable by the collector, and will never be freed by `gc_collect()`. A manual call to `gc_free(ptr)` is required to free a root allocation. For example:
 
 ```c
@@ -108,7 +108,7 @@ Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, t
 
 The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation. (it is not necessary to do this before `gc_free()`ing the pointer)
 
-#### Leaves
+#### 🍃 Leaves
 
 A **leaf allocation** is one that is guaranteed by the user to not contain any pointers to other managed allocations. If you are allocating large blocks of GC memory, say, for strings or images, that will never contain managed pointers, it is a good idea to mark those allocations as leaves. The `gc_collect()` function will skip scanning any leaf objects, improving runtime performance.
 
