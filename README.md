@@ -62,6 +62,7 @@ See the following sections for more detailed information on Emgc:
  - [Weak Pointers](#weak-pointers)
  - [Stack Scanning](#stack-scanning)
    - [Quadratic Memory Usage](#quadratic-memory-usage)
+ - [WebAssembly SIMD](#webassembly-simd)
 
 ### Pointer Identification
 
@@ -219,6 +220,14 @@ The above code generates a long string by concatenating `"foo"` 10000 times. If 
 If Emgc is operating in only-collect-when-stack-is-empty mode, the above code will temporarily require `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
 
 The recommendation here is hence to be extremely cautious of containers and strings when building without `--spill-pointers`. It is advisable to perform std::vector style **geometric capacity growths** of memory for containers and strings when compiling under this mode to mitigate the quadratic memory growth issue.
+
+### WebAssembly SIMD
+
+Emgc utilizes WebAssembly SIMD instruction set to speed up marking.
+
+In a synthetic, possibly best-case performance test ([test/performance.c](test/performance.c)), Emgc achieves a and a 1128.32 MB/sec marking speed in scalar mode and a 3602.85 MB/sec marking speed with SIMD. (3.19x faster)
+
+To enable SIMD optimizations, build with the `-msimd128` flag at both compile and link time.
 
 # Testing
 
