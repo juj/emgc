@@ -25,10 +25,12 @@ void gc_make_root(void *ptr)
     gc_roots = (void**)calloc(gc_roots_mask+1, sizeof(void*));
 
     gc_num_roots = 0;
-    if (old_mask)
+    if (old_roots)
+    {
       for(uint32_t i = 0; i <= old_mask; ++i)
         if ((uintptr_t)old_roots[i] > 1) insert_root(old_roots[i]);
-    free(old_roots);
+      free(old_roots);
+    }
   }
   insert_root(ptr);
 }
