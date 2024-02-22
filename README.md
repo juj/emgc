@@ -116,7 +116,7 @@ During garbage collection, all root pointers are always scanned.
 
 Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, the above code will not free up any memory, since `global` is declared to be a root, and it references the second allocation, so both are kept alive.
 
-The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation. (it is not necessary to do this before `gc_free()`ing the pointer)
+The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation. (it is not necessary to manually do this before `gc_free()`ing the root pointer though)
 
 #### 🍃 Leaves
 
@@ -172,6 +172,8 @@ Weak pointers have slightly different semantics to strong pointers:
  - To test if a pointer represents a weak pointer, call the function `gc_is_weak_ptr(ptr)`.
  - To test if a pointer represents a strong pointer, call the function `gc_is_strong_ptr(ptr)`.
  - The null pointer is considered **both** a weak and a strong pointer.
+
+Internally weak pointers are implemented via *pointer disguising*, which makes the marking process skip over them.
 
 ### 📚 Stack Scanning
 
