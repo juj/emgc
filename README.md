@@ -14,9 +14,9 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
      - [Leaves](#-leaves)
    - [Weak Pointers](#-weak-pointers)
    - [Stack Scanning](#-stack-scanning)
-     - [Quadratic Memory Usage](#-quadratic-memory-usage)
+     - [Quadratic Memory Usage](#𝕏-quadratic-memory-usage)
    - [WebAssembly SIMD](#-webassembly-simd)
- - [Testing](#testing)
+ - [Testing](#-testing)
 
 # Introduction
 
