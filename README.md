@@ -9,7 +9,7 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
  - [🔎 Details](#details)
    - [❓ Pointer Identification](#-pointer-identification)
    - [🌏 Global Memory Scanning](#-global-memory-scanning)
-   - [🌱 Roots and 🍃 Leaves](#-roots-and--leaves)
+   - [🌳 Roots and Leaves](#-roots-and-leaves)
      - [🌱 Roots](#-roots)
      - [🍃 Leaves](#-leaves)
    - [📌 Weak Pointers](#-weak-pointers)
@@ -91,7 +91,7 @@ This is convenient for getting started, although in a larger application, the st
 
 To disable automatic static data marking, pass the define `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1` when compiling `emgc.c`.
 
-### 🌱 Roots and 🍃 Leaves
+### 🌳 Roots and Leaves
 
 Managed allocations can be specialized in two different ways: as roots or leaves.
 
