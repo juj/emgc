@@ -7,7 +7,7 @@ static void mark(void *ptr, size_t bytes)
   assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
 
   const v128_t mem_start = wasm_u32x4_splat((uintptr_t)&__heap_base);
-  const v128_t mem_end = wasm_u32x4_splat((uintptr_t)heap_end());
+  const v128_t mem_end = wasm_u32x4_splat((uintptr_t)emscripten_get_heap_size());
   const v128_t align_mask = wasm_u32x4_const_splat((uintptr_t)7);
   const v128_t zero = wasm_u32x4_const_splat((uintptr_t)0);
 
