@@ -228,7 +228,7 @@ The recommendation here is hence to be extremely cautious of containers and stri
 
 ### 🔢 WebAssembly SIMD
 
-Emgc utilizes WebAssembly SIMD instruction set to speed up marking.
+Emgc optionally utilizes the WebAssembly SIMD instruction set to speed up marking.
 
 In a synthetic, possibly best-case performance test ([test/performance.c](test/performance.c)), Emgc achieves a and a 1128.32 MB/sec marking speed in scalar mode and a 3602.85 MB/sec marking speed with SIMD. (3.19x faster)
 
