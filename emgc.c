@@ -124,12 +124,10 @@ void gc_free(void *ptr)
 static void mark(void *ptr, size_t bytes)
 {
 //  EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
+  uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
-  assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-  {
-    uint32_t i = find_index(*p);
-    if (i != (uint32_t)-1 && BITVEC_GET(mark_table, i))
+    if ((i = find_index(*p)) != (uint32_t)-1 && BITVEC_GET(mark_table, i))
     {
 //      EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
       BITVEC_CLEAR(mark_table, i);
@@ -137,7 +135,6 @@ static void mark(void *ptr, size_t bytes)
       if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
         mark(*p, malloc_usable_size(*p));
     }
-  }
 }
 #endif
 
