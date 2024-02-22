@@ -92,7 +92,7 @@ void *gc_malloc(size_t bytes)
   ++num_table_entries;
   if (2*num_table_entries >= table_mask) realloc_table();
   table_insert(ptr);
-  EM_ASM({console.log(`gc_malloc: Allocated ptr ${$0.toString(16)}`)}, ptr);
+//  EM_ASM({console.log(`gc_malloc: Allocated ptr ${$0.toString(16)}`)}, ptr);
   return ptr;
 }
 
@@ -123,7 +123,7 @@ void gc_free(void *ptr)
 #else
 static void mark(void *ptr, size_t bytes)
 {
-  EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
+//  EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
@@ -131,7 +131,7 @@ static void mark(void *ptr, size_t bytes)
     uint32_t i = find_index(*p);
     if (i != (uint32_t)-1 && BITVEC_GET(mark_table, i))
     {
-      EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
+//      EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
       BITVEC_CLEAR(mark_table, i);
       num_finalizers_marked += ((uintptr_t)table[i] & PTR_FINALIZER_BIT);
       if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
@@ -158,21 +158,21 @@ void gc_collect()
   num_finalizers_marked = 0;
 
 #ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
-  EM_ASM({console.log("Marking static data.")});
+//  EM_ASM({console.log("Marking static data.")});
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
 #endif
 
-  EM_ASM({console.log("Marking stack.")});
+//  EM_ASM({console.log("Marking stack.")});
   uintptr_t stack_bottom = emscripten_stack_get_current();
   mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
 
   if (roots)
   {
-    EM_ASM({console.log("Marking roots.")});
+//    EM_ASM({console.log("Marking roots.")});
     mark((void*)roots, (roots_mask+1)*sizeof(void*));
   }
 
-  EM_ASM({console.log("Sweeping..")});
+//  EM_ASM({console.log("Sweeping..")});
   sweep();
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
