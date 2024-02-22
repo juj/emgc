@@ -119,7 +119,7 @@ int main()
 
 During garbage collection, all root pointers are always scanned.
 
-Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, the above code will not free up any memory, since `global` is declared to be a root, and it references the second allocation, so both are kept alive.
+Even if the program is compiled with `-DEMGC_SKIP_AUTOMATIC_STATIC_MARKING=1`, the call to `gc_collect()` in above code will not free up any memory, since `global` is declared to be a root, and it references the second allocation, so both allocations are kept alive.
 
 The function `gc_unmake_root(ptr)` can be used to restore a pointer from being a root back into being a regular managed allocation. (it is not necessary to manually do this before `gc_free()`ing the root pointer though)
 
