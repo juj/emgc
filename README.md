@@ -59,10 +59,10 @@ See the following sections for more detailed information on Emgc:
  - [Roots and Leaves](#-roots-and--leaves)
    - [Roots](#-roots)
    - [Leaves](#-leaves)
- - [Weak Pointers](#weak-pointers)
- - [Stack Scanning](#stack-scanning)
-   - [Quadratic Memory Usage](#quadratic-memory-usage)
- - [WebAssembly SIMD](#webassembly-simd)
+ - [Weak Pointers](#-weak-pointers)
+ - [Stack Scanning](#-stack-scanning)
+   - [Quadratic Memory Usage](#-quadratic-memory-usage)
+ - [WebAssembly SIMD](#-webassembly-simd)
 
 ### ❓ Pointer Identification
 
@@ -132,7 +132,7 @@ While it is technically possible to make an allocation simultaneously be both a 
 
 Note that while declaring GC allocations as leaves is a performance aid, declaring roots is required for correct GC behavior in your program.
 
-### Weak Pointers
+### 📎 Weak Pointers
 
 Emgc provides the ability to maintain weak pointers to managed allocations. Unlike regular ("strong") GC pointers, weak pointers do not keep the GC pointers they point to alive.
 
@@ -163,7 +163,7 @@ Weak pointers have slightly different semantics to strong pointers:
  - To test if a pointer represents a strong pointer, call the function `gc_is_strong_ptr(ptr)`.
  - The null pointer is considered **both** a weak and a strong pointer.
 
-### Stack Scanning
+### 📚 Stack Scanning
 
 To identify managed pointers on the program stack, Emgc automatically scans the LLVM data stack.
 
@@ -193,7 +193,7 @@ Both modes come with drawbacks:
 
 - In the collect-only-when-stack-is-empty mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha, see the next section on memory usage.
 
-#### Quadratic Memory Usage
+#### 𝕏² Quadratic Memory Usage
 
 Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-only-when-stack-is-empty stack scanning scheme. For example, the following code:
 
@@ -221,7 +221,7 @@ If Emgc is operating in only-collect-when-stack-is-empty mode, the above code wi
 
 The recommendation here is hence to be extremely cautious of containers and strings when building without `--spill-pointers`. It is advisable to perform std::vector style **geometric capacity growths** of memory for containers and strings when compiling under this mode to mitigate the quadratic memory growth issue.
 
-### WebAssembly SIMD
+### 🔢 WebAssembly SIMD
 
 Emgc utilizes WebAssembly SIMD instruction set to speed up marking.
 
@@ -229,6 +229,6 @@ In a synthetic, possibly best-case performance test ([test/performance.c](test/p
 
 To enable SIMD optimizations, build with the `-msimd128` flag at both compile and link time.
 
-# Testing
+# 🧪 Running Tests
 
 Execute `python test.py` to run the test suite.
