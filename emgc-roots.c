@@ -1,7 +1,6 @@
 #include "emgc.h"
 #include <stdlib.h>
 
-#include <stdio.h> // xxxx
 void **gc_roots;
 uint32_t gc_num_roots, gc_roots_mask;
 
