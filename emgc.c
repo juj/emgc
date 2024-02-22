@@ -159,6 +159,7 @@ static void mark(void *ptr, size_t bytes)
 #endif
 
 #include "emgc-weak.c"
+#include "emgc-roots.c"
 #include "emgc-finalizer.c"
 
 static void sweep()
@@ -174,9 +175,6 @@ static void sweep()
         free_at_index(i + (offset = __builtin_ctzll(bits)));
 }
 
-extern void **gc_roots;
-extern uint32_t gc_roots_mask;
-
 void gc_collect()
 {
   memcpy(mark_table, used_table, (table_mask+1)>>3);
@@ -191,10 +189,10 @@ void gc_collect()
   uintptr_t stack_bottom = emscripten_stack_get_current();
   mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
 
-  if (gc_roots)
+  if (roots)
   {
     EM_ASM({console.log("Marking roots.")});
-    mark((void*)gc_roots, (gc_roots_mask+1)*sizeof(void*));
+    mark((void*)roots, (roots_mask+1)*sizeof(void*));
   }
 
   EM_ASM({console.log("Sweeping..")});

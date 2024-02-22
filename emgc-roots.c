@@ -1,30 +1,29 @@
-#include "emgc.h"
 #include <stdlib.h>
 
-void **gc_roots;
-uint32_t gc_num_roots, gc_roots_mask;
+static void **roots;
+static uint32_t num_roots, roots_mask;
 
-static uint32_t hash_root(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & gc_roots_mask; }
+static uint32_t hash_root(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & roots_mask; }
 
 static void insert_root(void *ptr)
 {
   uint32_t i = hash_root(ptr);
-  while((uintptr_t)gc_roots[i] > 1) i = (i+1) & gc_roots_mask;
-  if ((uintptr_t)gc_roots[i] != 1) ++gc_num_roots;
-  gc_roots[i] = ptr;
+  while((uintptr_t)roots[i] > 1) i = (i+1) & roots_mask;
+  if ((uintptr_t)roots[i] != 1) ++num_roots;
+  roots[i] = ptr;
 }
 
 void gc_make_root(void *ptr)
 {
-  uint32_t old_mask = gc_roots_mask;
-  if (2*gc_num_roots >= gc_roots_mask)
+  uint32_t old_mask = roots_mask;
+  if (2*num_roots >= roots_mask)
   {
-    gc_roots_mask = (gc_roots_mask << 1) | 1;
+    roots_mask = (roots_mask << 1) | 1;
 
-    void **old_roots = gc_roots;
-    gc_roots = (void**)calloc(gc_roots_mask+1, sizeof(void*));
+    void **old_roots = roots;
+    roots = (void**)calloc(roots_mask+1, sizeof(void*));
 
-    gc_num_roots = 0;
+    num_roots = 0;
     if (old_roots)
     {
       for(uint32_t i = 0; i <= old_mask; ++i)
@@ -37,11 +36,11 @@ void gc_make_root(void *ptr)
 
 void gc_unmake_root(void *ptr)
 {
-  if (!gc_roots) return;
-  for(uint32_t i = hash_root(ptr); gc_roots[i]; i = (i+1) & gc_roots_mask)
-    if (gc_roots[i] == ptr)
+  if (!roots) return;
+  for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
+    if (roots[i] == ptr)
     {
-      gc_roots[i] = (void*)1;
+      roots[i] = (void*)1;
       return;
     }
 }
