@@ -38,9 +38,14 @@ static uint32_t find_insert_index(void *ptr)
   return (i64<<6) + __builtin_ctzll(~u);
 }
 
+static uintptr_t heap_end()
+{
+  return __builtin_wasm_memory_size(0) << 16;
+}
+
 static uint32_t find_index(void *ptr)
 {
-  if (ptr < (void*)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)&__heap_base + emscripten_get_heap_size()) return (uint32_t)-1;
+  if (ptr < (void*)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= heap_end()) return (uint32_t)-1;
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
     if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
   return (uint32_t)-1;
