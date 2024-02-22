@@ -4,6 +4,20 @@ A tiny low-level research garbage collector to be used solely on the Emscripten 
 
 This is a toy project used to introspect Emscripten compiler behavior. Not for production use.
 
+ - [Introduction](#introduction)
+ - [Usage](#usage)
+ - [Details](#details)
+   - [Pointer Identification](#-pointer-identification)
+   - [Global Memory Scanning](#-global-memory-scanning)
+   - [Roots and Leaves](#-roots-and--leaves)
+     - [Roots](#-roots)
+     - [Leaves](#-leaves)
+   - [Weak Pointers](#-weak-pointers)
+   - [Stack Scanning](#-stack-scanning)
+     - [Quadratic Memory Usage](#-quadratic-memory-usage)
+   - [WebAssembly SIMD](#-webassembly-simd)
+ - [Testing](#testing)
+
 # Introduction
 
 Emgc provides the user the ability to do low-level `malloc()` style memory allocations do not need to be manually `free()`d, but are garbage collected instead. Example C/C++ code:
@@ -53,16 +67,7 @@ Additionally, you must choose one of the two possible stack scanning modes in or
 
 # Details
 
-See the following sections for more detailed information on Emgc:
- - [Pointer Identification](#-pointer-identification)
- - [Global Memory Scanning](#-global-memory-scanning)
- - [Roots and Leaves](#-roots-and--leaves)
-   - [Roots](#-roots)
-   - [Leaves](#-leaves)
- - [Weak Pointers](#-weak-pointers)
- - [Stack Scanning](#-stack-scanning)
-   - [Quadratic Memory Usage](#-quadratic-memory-usage)
- - [WebAssembly SIMD](#-webassembly-simd)
+See the following sections for more detailed information on Emgc.
 
 ### ❓ Pointer Identification
 
