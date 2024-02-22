@@ -128,7 +128,7 @@ The function `gc_malloc_root(bytes)` is provided for conveniently allocating roo
 
 A **leaf allocation** is one that is guaranteed by the user to not contain any pointers to other managed allocations. If you are allocating large blocks of GC memory, say, for strings or images, that will never contain managed pointers, it is a good idea to mark those allocations as leaves. The `gc_collect()` function will skip scanning any leaf objects, improving runtime performance.
 
-Use the functions `gc_make_leaf(ptr)` and `gc_unmake_leaf(ptr)`. For example:
+Use the function `gc_make_leaf(ptr)` to declare a GC allocation a leaf. For example:
 
 ```c
 #include "emgc.h"
@@ -141,6 +141,8 @@ int main()
     gc_collect(); // will not scan contents of 'string'.
 }
 ```
+
+Symmetrically, there exists a function `gc_unmake_leaf(ptr)` to undo an allocation from being a leaf allocation.
 
 The function `gc_malloc_leaf(bytes)` is provided for conveniently allocating leaf memory in one call.
 
