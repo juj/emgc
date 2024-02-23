@@ -1,3 +1,5 @@
+static uint32_t find_index(void *ptr);
+
 typedef struct finalizer_map
 {
   void *ptr;
