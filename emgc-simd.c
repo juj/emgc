@@ -32,9 +32,8 @@ static void mark(void *ptr, size_t bytes)
           {
 //            EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
             BITVEC_CLEAR(mark_table, i);
-            num_finalizers_marked += ((uintptr_t)table[i] & PTR_FINALIZER_BIT);
-            if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
-              mark(*p, malloc_usable_size(*p));
+            num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
+            if (!HAS_LEAF_BIT(table[i])) mark(*p, malloc_usable_size(*p));
           }
           break;
         }

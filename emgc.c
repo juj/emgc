@@ -18,6 +18,8 @@
 #define SENTINEL_PTR ((void*)31)
 #define PTR_FINALIZER_BIT ((uintptr_t)1)
 #define PTR_LEAF_BIT ((uintptr_t)2)
+#define HAS_FINALIZER_BIT(ptr) (((uintptr_t)(ptr) & PTR_FINALIZER_BIT))
+#define HAS_LEAF_BIT(ptr) (((uintptr_t)(ptr) & PTR_LEAF_BIT))
 
 size_t malloc_usable_size(void*);
 
@@ -136,8 +138,8 @@ static void mark(void *ptr, size_t bytes)
     if ((i = find_index(*p)) != (uint32_t)-1 && BITVEC_GET(mark_table, i))
     {
       BITVEC_CLEAR(mark_table, i);
-      num_finalizers_marked += ((uintptr_t)table[i] & PTR_FINALIZER_BIT);
-      if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0) mark(*p, malloc_usable_size(*p));
+      num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
+      if (!HAS_LEAF_BIT(table[i])) mark(*p, malloc_usable_size(*p));
     }
 }
 #endif
