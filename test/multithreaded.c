@@ -64,7 +64,7 @@ void work(void *user1, void *user2)
 
 void worker_main()
 {
-  gc_access_managed_state(work, 0, 0);
+  gc_enter_fenced_access(work, 0, 0);
 }
 
 int main()

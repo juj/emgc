@@ -44,11 +44,11 @@ void gc_participate_to_garbage_collection()
   }
 }
 
-void gc_access_managed_state(gc_mutator_func mutator, void *user1, void *user2)
+void gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
 {
   // If there is a current GC collection going, help out the GC collection before
   // we enter managed state. Need to track two cases: if we have a previous nested
-  // call to gc_access_managed_state() from before, do full participation (that
+  // call to gc_enter_fenced_access() from before, do full participation (that
   // scans this stack). Otherwise we simply assist in marking (without scanning
   // this thread's stack).
   if (this_thread_accessing_managed_state) gc_participate_to_garbage_collection();
