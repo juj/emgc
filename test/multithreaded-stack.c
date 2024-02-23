@@ -23,7 +23,7 @@ void *work(void *user1, void *user2)
   while(!worker_quit)
   {
     emscripten_wasm_worker_sleep(10000);
-    gc_participate_to_garbage_collection(); // TODO: Remove this after Binaryen codegen magic
+//    gc_participate_to_garbage_collection(); // TODO: Remove this after Binaryen codegen magic
   }
   require(gc_is_ptr(data) && "data pointer on the local stack of a Wasm Worker should not have gotten garbage collected.");
   require(gc_num_ptrs() == 1 && "There should only remain one allocation from the Wasm Worker thread alive.");

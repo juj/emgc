@@ -31,7 +31,9 @@ static void wait_for_all_participants()
   while(num_threads_ready_to_start_marking < num_threads_accessing_managed_state) /*nop*/;
 }
 
-void gc_participate_to_garbage_collection()
+// Mark as keepalive to make sure it exists in the generated Module so that the
+// --instrument-cooperative-gc Binaryen pass can find it. (TODO: This function shouldn't be exported out to JS)
+void EMSCRIPTEN_KEEPALIVE gc_participate_to_garbage_collection()
 {
   if (mt_marking_running && this_thread_accessing_managed_state)
   {

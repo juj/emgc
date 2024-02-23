@@ -19,7 +19,7 @@ if len(sys.argv) > 1:
 
 #cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']#, '-sMINIMAL_RUNTIME']
 # TODO: Mechanism to differentiate between html and js tests
-cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']#, '-sMINIMAL_RUNTIME']
+cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--instrument-cooperative-gc', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB', '-sWASM_WORKERS']#, '-sMINIMAL_RUNTIME']
 
 failures = []
 passes = 0

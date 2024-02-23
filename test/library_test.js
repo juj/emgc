@@ -31,7 +31,8 @@ mergeInto(LibraryManager.library, {
     try {
       return {{{ makeDynCall('ppp', 'func') }}}(user1, user2);
     } catch(e) {
-      gc_exit_fenced_access_();
+      _gc_exit_fenced_access_();
+      console.error(e);
       throw e;
     }
   }
