@@ -28,10 +28,10 @@ static void mark(void *ptr, size_t bytes)
       for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
         if (REMOVE_FLAG_BITS(table[i]) == ptr)
         {
-          if (i != (uint32_t)-1 && BITVEC_GET(mark_table, i))
+          if (i != (uint32_t)-1 && !BITVEC_GET(mark_table, i))
           {
 //            EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
-            BITVEC_CLEAR(mark_table, i);
+            BITVEC_SET(mark_table, i);
             num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
             if (!HAS_LEAF_BIT(table[i])) mark(*p, malloc_usable_size(*p));
           }

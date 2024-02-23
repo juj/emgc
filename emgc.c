@@ -141,9 +141,9 @@ static void mark(void *ptr, size_t bytes)
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = find_index(*p)) != (uint32_t)-1 && BITVEC_GET(mark_table, i))
+    if ((i = find_index(*p)) != (uint32_t)-1 && !BITVEC_GET(mark_table, i))
     {
-      BITVEC_CLEAR(mark_table, i);
+      BITVEC_SET(mark_table, i);
       num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
       if (!HAS_LEAF_BIT(table[i])) mark(*p, malloc_usable_size(*p));
     }
@@ -158,7 +158,7 @@ static void sweep()
   if (num_finalizers_marked < num_finalizers) find_and_run_a_finalizer();
   else // No finalizers to invoke, so perform a real sweep that frees up GC objects.
     for(uint32_t i = 0, offset; i <= table_mask; i += 64)
-      for(uint64_t b = ((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
+      for(uint64_t b = ((uint64_t*)used_table)[i>>6] & ~((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
         free_at_index(i + (offset = __builtin_ctzll(b)));
 }
 
@@ -178,11 +178,11 @@ void gc_collect()
 {
   if (!table_mask) return; // TODO: use a ctor to remove this if()?
 
+  memset(mark_table, 0, (table_mask+1)>>3);
+  num_finalizers_marked = 0;
+
   start_multithreaded_collection();
   GC_MALLOC_ACQUIRE();
-  memcpy(mark_table, used_table, (table_mask+1)>>3);
-  start_multithreaded_marking();
-  num_finalizers_marked = 0;
 
 #ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);

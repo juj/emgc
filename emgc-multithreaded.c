@@ -25,7 +25,7 @@ static __thread uintptr_t stack_top;
 static emscripten_lock_t mark_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 static void **mark_array;
 static _Atomic(uint32_t) mark_head, mark_tail;
-static _Atomic(int) can_start_marking, num_threads_finished_marking;
+static _Atomic(int) num_threads_finished_marking;
 
 static void wait_for_all_participants()
 {
@@ -41,7 +41,6 @@ void EMSCRIPTEN_KEEPALIVE gc_participate_to_garbage_collection()
   {
     ++num_threads_ready_to_start_marking;
     wait_for_all_participants();
-    while(!can_start_marking) /*nop*/ ;
     mark_current_thread_stack();
     mark_from_queue();
   }
@@ -86,17 +85,9 @@ static void start_multithreaded_collection()
   if (!mark_array) mark_array = malloc(512*1024);
   mark_head = mark_tail = 0;
   num_threads_ready_to_start_marking = 0;
-  can_start_marking = 0;
   num_threads_finished_marking = 0;
   mt_marking_running = 1;
   wait_for_all_participants();
-#endif
-}
-
-static void start_multithreaded_marking()
-{
-#ifdef __EMSCRIPTEN_SHARED_MEMORY__
-  can_start_marking = 1;
 #endif
 }
 
@@ -138,11 +129,11 @@ static void mark(void *ptr, size_t bytes)
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = find_index(*p)) != (uint32_t)-1 && BITVEC_GET(mark_table, i))
+    if ((i = find_index(*p)) != (uint32_t)-1 && !BITVEC_GET(mark_table, i))
     {
       emscripten_lock_busyspin_wait_acquire(&mark_lock, 1e9);
 
-      BITVEC_CLEAR(mark_table, i);
+      BITVEC_SET(mark_table, i);
 
       if (HAS_FINALIZER_BIT(table[i])) __c11_atomic_fetch_add((_Atomic uint32_t*)&num_finalizers_marked, 1, __ATOMIC_SEQ_CST);
       if (HAS_LEAF_BIT(table[i]))
