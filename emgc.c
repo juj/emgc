@@ -99,7 +99,6 @@ void *gc_malloc(size_t bytes)
   ++num_table_entries;
   if (2*num_table_entries >= table_mask) realloc_table();
   table_insert(ptr);
-//  EM_ASM({console.log(`gc_malloc: Allocated ptr ${$0.toString(16)}`)}, ptr);
   return ptr;
 }
 
@@ -129,13 +128,11 @@ void gc_free(void *ptr)
 #else
 static void mark(void *ptr, size_t bytes)
 {
-//  EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
     if ((i = find_index(*p)) != (uint32_t)-1 && BITVEC_GET(mark_table, i))
     {
-//      EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, *p, i, p);
       BITVEC_CLEAR(mark_table, i);
       num_finalizers_marked += ((uintptr_t)table[i] & PTR_FINALIZER_BIT);
       if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
