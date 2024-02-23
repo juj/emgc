@@ -115,9 +115,11 @@ void gc_free(void *ptr)
 {
   if (!ptr) return;
   uint32_t i = find_index(ptr);
-  if (i == (uint32_t)-1) return;
-  free_at_index(i);
-  gc_unmake_root(ptr);
+  if (i != (uint32_t)-1)
+  {
+    free_at_index(i);
+    gc_unmake_root(ptr);
+  }
 }
 
 #include "emgc-weak.c"
