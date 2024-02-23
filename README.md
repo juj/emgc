@@ -303,7 +303,22 @@ In the fenced mode, threads are not allowed to mutate (modify) the contents of a
 
 This fenced scope is entered by calling the function `gc_enter_fenced_access(callback, user1, user2)`. The first parameter to this function is a callback function, which will be immediately (synchronously) called back from inside `gc_enter_fenced_access()`. The two other parameters are custom user data pointers.
 
-Inside this callback function (and anywhere that executes nested inside this call stack scope), the program code is free to perform modifications to GC objects at will.
+Inside this callback function (and anywhere that executes nested inside this call stack scope), the program code is free to perform modifications to GC objects and allocate new GC objects. For example:
+
+```c
+#include "emgc.h"
+
+void work(void *user1, void *user2)
+{
+  char *str = gc_malloc(4); // Inside fenced scope we can access GC objects and do GC allocations.
+}
+
+int main()
+{
+  gc_enter_fenced_access(work, 0, 0);
+  gc_collect(); // We can collect outside fenced scope.
+}
+```
 
 The functions `gc_malloc()`, `gc_malloc_root()`, `gc_malloc_leaf()` and `gc_acquire_strong_ptr()` may only be called from inside a fenced scope.
 
