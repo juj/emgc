@@ -155,6 +155,8 @@ static void sweep()
 
 void gc_collect()
 {
+  if (!table_mask) return; // TODO: use a ctor to remove this if()?
+
   memcpy(mark_table, used_table, (table_mask+1)>>3);
   num_finalizers_marked = 0;
 
