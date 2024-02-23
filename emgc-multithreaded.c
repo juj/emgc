@@ -127,7 +127,7 @@ static void mark(void *ptr, size_t bytes)
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = find_index(*p)) != (uint32_t)-1 && !BITVEC_GET(mark_table, i))
+    if ((i = find_index(*p)) != INVALID_INDEX && !BITVEC_GET(mark_table, i))
     {
       emscripten_lock_busyspin_wait_acquire(&mark_lock, 1e9);
 

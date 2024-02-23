@@ -15,7 +15,7 @@ static uint32_t find_finalizer_index(void *ptr)
 {
   for(uint32_t i = hash_finalizer(ptr); finalizers[i].ptr; i = (i+1) & finalizers_mask)
     if (finalizers[i].ptr == ptr) return i;
-  return (uint32_t)-1;
+  return INVALID_INDEX;
 }
 
 static void find_and_run_a_finalizer()

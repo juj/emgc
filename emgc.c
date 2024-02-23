@@ -15,6 +15,7 @@
 #define BITVEC_SET(arr, i)   ((arr)[(i)>>3] |=   1<<((i)&7))
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
 #define REMOVE_FLAG_BITS(ptr) ((void*)((uintptr_t)(ptr) & ~(uintptr_t)7))
+#define INVALID_INDEX ((uint32_t)-1)
 #define SENTINEL_PTR ((void*)31)
 #define PTR_FINALIZER_BIT ((uintptr_t)1)
 #define PTR_LEAF_BIT ((uintptr_t)2)
@@ -54,10 +55,10 @@ static uint32_t find_insert_index(void *ptr)
 
 static uint32_t find_index(void *ptr)
 {
-  if (ptr < (void*)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)emscripten_get_heap_size()) return (uint32_t)-1;
+  if (ptr < (void*)&__heap_base || !IS_ALIGNED(ptr, 8) || (uintptr_t)ptr >= (uintptr_t)emscripten_get_heap_size()) return INVALID_INDEX;
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
     if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
-  return (uint32_t)-1;
+  return INVALID_INDEX;
 }
 
 static void table_insert(void *ptr)
@@ -121,7 +122,7 @@ void gc_free(void *ptr)
   if (!ptr) return;
   GC_MALLOC_ACQUIRE();
   uint32_t i = find_index(ptr);
-  if (i != (uint32_t)-1)
+  if (i != INVALID_INDEX)
   {
     free_at_index(i);
     gc_unmake_root(ptr);
@@ -141,7 +142,7 @@ static void mark(void *ptr, size_t bytes)
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = find_index(*p)) != (uint32_t)-1 && !BITVEC_GET(mark_table, i))
+    if ((i = find_index(*p)) != INVALID_INDEX && !BITVEC_GET(mark_table, i))
     {
       BITVEC_SET(mark_table, i);
       num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
@@ -217,7 +218,7 @@ int gc_is_ptr(void *ptr)
   GC_MALLOC_ACQUIRE();
   uint32_t i = find_index(ptr);
   GC_MALLOC_RELEASE();
-  return i != (uint32_t)-1;
+  return i != INVALID_INDEX;
 }
 
 #include "emgc-debug.c"
