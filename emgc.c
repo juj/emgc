@@ -137,8 +137,7 @@ static void mark(void *ptr, size_t bytes)
     {
       BITVEC_CLEAR(mark_table, i);
       num_finalizers_marked += ((uintptr_t)table[i] & PTR_FINALIZER_BIT);
-      if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0)
-        mark(*p, malloc_usable_size(*p));
+      if (((uintptr_t)table[i] & PTR_LEAF_BIT) == 0) mark(*p, malloc_usable_size(*p));
     }
 }
 #endif
