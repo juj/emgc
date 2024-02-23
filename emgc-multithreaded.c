@@ -133,7 +133,7 @@ static void mark(void *ptr, size_t bytes)
 
       BITVEC_SET(mark_table, i);
 
-      if (HAS_FINALIZER_BIT(table[i])) __c11_atomic_fetch_add((_Atomic uint32_t*)&num_finalizers_marked, 1, __ATOMIC_SEQ_CST);
+      if (HAS_FINALIZER_BIT(table[i])) ++num_finalizers_marked;
       if (HAS_LEAF_BIT(table[i]))
       {
         mark_array[mark_head] = *p;
