@@ -177,7 +177,7 @@ static void mark_current_thread_stack()
 
 void gc_collect()
 {
-  if (!table_mask) return; // TODO: use a ctor to remove this if()?
+  if (!num_allocs) return;
 
   memset(mark_table, 0, (table_mask+1)>>3);
   num_finalizers_marked = 0;
