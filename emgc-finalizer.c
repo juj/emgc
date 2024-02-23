@@ -21,7 +21,7 @@ static uint32_t find_finalizer_index(void *ptr)
 static void find_and_run_a_finalizer()
 {
   for(uint32_t i = 0, offset; i <= table_mask; i += 64)
-    for(uint64_t b = ((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
+    for(uint64_t b = ((uint64_t*)used_table)[i>>6] & ~((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
     {
       uint32_t j = i + (offset = __builtin_ctzll(b));
       if (HAS_FINALIZER_BIT(table[j]))
