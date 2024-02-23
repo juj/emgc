@@ -45,13 +45,13 @@ void EMSCRIPTEN_KEEPALIVE gc_participate_to_garbage_collection()
   }
 }
 
-void gc_exit_fenced_access_()
+static void exit_fenced_access()
 {
   --this_thread_accessing_managed_state;
   if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
 }
 
-void *gc_call_mutator_from_js(gc_mutator_func mutator_callback, void *user1, void *user2);
+void *js_try_finally(gc_mutator_func func, void *user1, void *user2, void (*finally_func)(void));
 
 void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
 {
@@ -73,9 +73,9 @@ void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
 
   if (mt_marking_running) mark_from_queue();
 
-  void *ret = gc_call_mutator_from_js(mutator, user1, user2);
-  gc_exit_fenced_access_();
-  return ret;
+  // Call the mutator callback function in a fashion that safely clears the
+  // fence state in case a JavaScript exception is thrown inside the call stack.
+  return js_try_finally(mutator, user1, user2, exit_fenced_access);
 }
 
 static void start_multithreaded_collection()

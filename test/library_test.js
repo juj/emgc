@@ -26,14 +26,11 @@ mergeInto(LibraryManager.library, {
     _clear_stack();
   },
 
-  gc_call_mutator_from_js__deps: ['gc_exit_fenced_access_'],
-  gc_call_mutator_from_js: function(func, user1, user2) {
+  js_try_finally: function(func, user1, user2, finally_func) {
     try {
       return {{{ makeDynCall('ppp', 'func') }}}(user1, user2);
-    } catch(e) {
-      _gc_exit_fenced_access_();
-      console.error(e);
-      throw e;
+    } finally {
+      {{{ makeDynCall('v', 'finally_func') }}} ();
     }
   }
 });
