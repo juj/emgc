@@ -53,11 +53,13 @@ void gc_access_managed_state(gc_mutator_func mutator, void *user1, void *user2)
   // scans this stack). Otherwise we simply assist in marking (without scanning
   // this thread's stack).
   if (this_thread_accessing_managed_state) gc_participate_to_garbage_collection();
-  else if (mt_marking_running) mark_from_queue();
-
-  if (!this_thread_accessing_managed_state) ++num_threads_accessing_managed_state;
+  else ++num_threads_accessing_managed_state;
   ++this_thread_accessing_managed_state;
+
+  if (mt_marking_running) mark_from_queue();
+
   mutator(user1, user2);
+
   --this_thread_accessing_managed_state;
   if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
 }
