@@ -13,7 +13,7 @@ void worker_has_started()
   worker_quit = 1;
 }
 
-void work(void *user1, void *user2)
+void *work(void *user1, void *user2)
 {
   char *data = gc_malloc(4); // This allocation should stay alive
   EM_ASM({console.log(`Ptr 0x${$0.toString(16)} allocated on worker thread, should stay alive in collection.`)}, data);
@@ -28,6 +28,7 @@ void work(void *user1, void *user2)
   require(gc_is_ptr(data) && "data pointer on the local stack of a Wasm Worker should not have gotten garbage collected.");
   require(gc_num_ptrs() == 1 && "There should only remain one allocation from the Wasm Worker thread alive.");
   exit(0);
+  return 0;
 }
 
 void worker_main()

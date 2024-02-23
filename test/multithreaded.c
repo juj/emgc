@@ -23,7 +23,7 @@ void notify_worker_quit()
   emscripten_terminate_wasm_worker(worker);
 }
 
-void work(void *user1, void *user2)
+void *work(void *user1, void *user2)
 {
   EM_ASM({console.log(`Worker thread: work`)});
 
@@ -60,6 +60,7 @@ void work(void *user1, void *user2)
 
   EM_ASM({console.log(`Worker thread: finished`)});
   emscripten_wasm_worker_post_function_v(0, notify_worker_quit);
+  return 0;
 }
 
 void worker_main()

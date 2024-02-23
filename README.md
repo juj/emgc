@@ -301,7 +301,7 @@ But in order to do so, Emgc must be operated in the **fenced --spill-pointers** 
 
 In the fenced mode, threads are not allowed to mutate (modify) the contents of any managed objects or managed root regions without entering a fenced scope. It is up to the programmer to ensure that this invariant is enforced.
 
-This fenced scope is entered by calling the function `gc_enter_fenced_access(callback, user1, user2)`. The first parameter to this function is a callback function, which will be immediately (synchronously) called back from inside `gc_enter_fenced_access()`. The two other parameters are custom user data pointers.
+This fenced scope is entered by calling the function `gc_enter_fenced_access(callback, user1, user2)`. The first parameter to this function is a callback function, which will be immediately (synchronously) called back from inside `gc_enter_fenced_access()`. The two other parameters are custom user data pointers. The passed callback may return a `void*` parameter back to the caller.
 
 Inside this callback function (and anywhere that executes nested inside this call stack scope), the program code is free to perform modifications to GC objects and allocate new GC objects. For example:
 
@@ -322,13 +322,15 @@ int main()
 
 The functions `gc_malloc()`, `gc_malloc_root()`, `gc_malloc_leaf()` and `gc_acquire_strong_ptr()` may only be called from inside a fenced scope.
 
-The function `gc_collect()` and `gc_collect_when_stack_is_empty()` may be freely called from anywhere **outside** a fenced scope (and will implicity place the caller inside a fenced scope for the duration of the call).
+The functions `gc_collect()` and `gc_collect_when_stack_is_empty()` may freely be called from anywhere **outside** a fenced scope (and will implicity place the caller inside a fenced scope for the duration of the call).
 
-When any thread initiates a garbage collection with `gc_collect()`, all threads that are currently executing code inside a fence will immediately join to simultaneously work on the *mark phase* of the garbage collection in parallel.
+When any thread initiates a garbage collection with `gc_collect()`, all threads that are currently executing code inside a fence will immediately join to simultaneously work on the *mark phase* of the garbage collection process in parallel.
 
 When the mark phase is complete, each fenced thread will resume code execution from where they left off inside their fenced scope, and the *sweep phase* will be completed on the background in a single dedicated sweep worker thread.
 
 Fenced mode is always enabled when building with `-sWASM_WORKERS` or `-pthread`. You can also manually activate fenced mode by building with `-DEMGC_FENCED`.
+
+N.b. if you are building C++ code with C++ exceptions enabled, you should manually ensure that no exception will unwind the `gc_enter_fenced_access()` function from the callstack.
 
 # 🧪 Running Tests
 

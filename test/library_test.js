@@ -24,5 +24,15 @@ mergeInto(LibraryManager.library, {
   call_from_js_v: function(func) {
     {{{ makeDynCall('v', 'func') }}}();
     _clear_stack();
+  },
+
+  gc_call_mutator_from_js__deps: ['gc_exit_fenced_access_'],
+  gc_call_mutator_from_js: function(func, user1, user2) {
+    try {
+      return {{{ makeDynCall('ppp', 'func') }}}(user1, user2);
+    } catch(e) {
+      gc_exit_fenced_access_();
+      throw e;
+    }
   }
 });

@@ -44,7 +44,15 @@ void gc_participate_to_garbage_collection()
   }
 }
 
-void gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
+void gc_exit_fenced_access_()
+{
+  --this_thread_accessing_managed_state;
+  if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
+}
+
+void *gc_call_mutator_from_js(gc_mutator_func mutator_callback, void *user1, void *user2);
+
+void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
 {
   // If there is a current GC collection going, help out the GC collection before
   // we enter managed state. Need to track two cases: if we have a previous nested
@@ -57,10 +65,9 @@ void gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
 
   if (mt_marking_running) mark_from_queue();
 
-  mutator(user1, user2);
-
-  --this_thread_accessing_managed_state;
-  if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
+  void *ret = gc_call_mutator_from_js(mutator, user1, user2);
+  gc_exit_fenced_access_();
+  return ret;
 }
 
 static void start_multithreaded_collection()
