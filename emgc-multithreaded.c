@@ -18,7 +18,7 @@ static void mark_from_queue();
 static void mark(void *ptr, size_t bytes);
 static uint32_t find_index(void *ptr);
 
-static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_managed_threads_participating_in_collection;
+static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_managed_threads_participating_in_marking;
 static __thread int this_thread_accessing_managed_state = 0;
 static emscripten_lock_t mark_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 static void **mark_array;
@@ -28,7 +28,7 @@ static _Atomic(int) can_start_marking, num_threads_marking;
 static void wait_for_all_participants()
 {
   // Wait for all threads currently executing in managed context to gather up together for the collection.
-  while(num_managed_threads_participating_in_collection < num_threads_accessing_managed_state) /*nop*/;
+  while(num_managed_threads_participating_in_marking < num_threads_accessing_managed_state) /*nop*/;
 }
 
 void gc_participate_to_garbage_collection()
@@ -36,7 +36,7 @@ void gc_participate_to_garbage_collection()
   if (mt_marking_running && this_thread_accessing_managed_state)
   {
     uintptr_t stack_bottom = emscripten_stack_get_current();
-    ++num_managed_threads_participating_in_collection;
+    ++num_managed_threads_participating_in_marking;
     ++num_threads_marking;
     wait_for_all_participants();
     while(!can_start_marking) /*nop*/ ;
@@ -67,7 +67,7 @@ static void start_multithreaded_collection()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (!mark_array) mark_array = malloc(512*1024);
   mark_head = mark_tail = 0;
-  num_managed_threads_participating_in_collection = 0;
+  num_managed_threads_participating_in_marking = 0;
   can_start_marking = 0;
   num_threads_marking = 0;
   mt_marking_running = 1;
