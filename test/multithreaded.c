@@ -31,7 +31,7 @@ void work(void *user1, void *user2)
   PIN(&data);
 
   emscripten_wasm_worker_post_function_v(0, notify_worker_started);
-  /*
+
   int ***gc_mem = 0, ***gc_mem_prev = 0;
   while(!__c11_atomic_load(&worker_quit, __ATOMIC_SEQ_CST))
   {
@@ -50,7 +50,7 @@ void work(void *user1, void *user2)
     emscripten_wasm_worker_sleep(10000);
     gc_participate_to_garbage_collection();
   }
-  */
+
   while(!__c11_atomic_load(&worker_quit, __ATOMIC_SEQ_CST))
   {
     emscripten_wasm_worker_sleep(10000);
