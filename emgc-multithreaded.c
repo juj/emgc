@@ -19,13 +19,12 @@ static void mark_current_thread_stack();
 static void mark(void *ptr, size_t bytes);
 static uint32_t find_index(void *ptr);
 
-static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking;
+static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking, num_threads_finished_marking;
 static __thread int this_thread_accessing_managed_state;
 static __thread uintptr_t stack_top;
 static emscripten_lock_t mark_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 static void **mark_array;
 static _Atomic(uint32_t) mark_head, mark_tail;
-static _Atomic(int) num_threads_finished_marking;
 
 static void wait_for_all_participants()
 {
