@@ -160,21 +160,14 @@ void gc_collect()
   num_finalizers_marked = 0;
 
 #ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
-//  EM_ASM({console.log("Marking static data.")});
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
 #endif
 
-//  EM_ASM({console.log("Marking stack.")});
   uintptr_t stack_bottom = emscripten_stack_get_current();
   mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
 
-  if (roots)
-  {
-//    EM_ASM({console.log("Marking roots.")});
-    mark((void*)roots, (roots_mask+1)*sizeof(void*));
-  }
+  if (roots) mark((void*)roots, (roots_mask+1)*sizeof(void*));
 
-//  EM_ASM({console.log("Sweeping..")});
   sweep();
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
