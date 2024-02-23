@@ -328,6 +328,8 @@ When any thread initiates a garbage collection with `gc_collect()`, all threads 
 
 When the mark phase is complete, each fenced thread will resume code execution from where they left off inside their fenced scope, and the *sweep phase* will be completed on the background in a single dedicated sweep worker thread.
 
+Fenced mode is always enabled when building with `-sWASM_WORKERS` or `-pthread`. You can also manually activate fenced mode by building with `-DEMGC_FENCED`.
+
 # 🧪 Running Tests
 
 Execute `python test.py` to run the test suite.
