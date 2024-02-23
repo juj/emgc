@@ -83,8 +83,7 @@ static void start_multithreaded_collection()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (!mark_array) mark_array = malloc(512*1024);
   mark_head = mark_tail = 0;
-  num_threads_ready_to_start_marking = 0;
-  num_threads_finished_marking = 0;
+  num_threads_ready_to_start_marking = num_threads_finished_marking = 0;
   mt_marking_running = 1;
   wait_for_all_participants();
 #endif
