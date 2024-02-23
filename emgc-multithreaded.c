@@ -14,6 +14,12 @@ static volatile uint8_t mt_lock = 0;
 #define ASSERT_GC_MALLOC_IS_ACQUIRED() ((void)0)
 #endif
 
+#if defined(__EMSCRIPTEN_SHARED_MEMORY__) || defined(EMGC_FENCED)
+#define ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED() assert(this_thread_accessing_managed_state && "In fenced build mode, GC state must be only accessed from inside gc_enter_fenced_access() scope.")
+#else
+#define ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED() ((void)0)
+#endif
+
 static void mark_from_queue();
 static void mark_current_thread_stack();
 static void mark(void *ptr, size_t bytes);

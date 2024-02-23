@@ -97,6 +97,7 @@ static void realloc_table()
 
 void *gc_malloc(size_t bytes)
 {
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   void *ptr = malloc(bytes);
   if (!ptr) return 0;
   GC_MALLOC_ACQUIRE();
