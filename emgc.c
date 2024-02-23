@@ -34,6 +34,8 @@ static void **table;
 static uint8_t *mark_table, *used_table;
 static uint32_t num_allocs, num_table_entries, table_mask;
 
+#include "emgc-finalizer.c"
+
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
 
 static uint32_t find_insert_index(void *ptr)
@@ -121,7 +123,6 @@ void gc_free(void *ptr)
 
 #include "emgc-weak.c"
 #include "emgc-roots.c"
-#include "emgc-finalizer.c"
 
 #ifdef __wasm_simd128__
 #include "emgc-simd.c"

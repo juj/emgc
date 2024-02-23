@@ -33,6 +33,9 @@ int gc_is_ptr(void *weak_or_strong_ptr);
 int gc_is_weak_ptr(void *weak_or_strong_ptr);
 int gc_is_strong_ptr(void *weak_or_strong_ptr);
 
+typedef void (*gc_finalizer)(void *ptr);
+void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
+
 uint32_t gc_num_ptrs(void);
 void gc_dump(void);
 
