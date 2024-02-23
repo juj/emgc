@@ -20,6 +20,14 @@
 #define PTR_LEAF_BIT ((uintptr_t)2)
 
 size_t malloc_usable_size(void*);
+
+void * __attribute__((weak, __visibility__("default"))) // dlmalloc doesn't have realloc with uninitialization semantics,
+emmalloc_realloc_uninitialized(void *ptr, size_t size)  // so weakly bring over the emmalloc version of it, and use that instead.
+{
+  free(ptr);
+  return malloc(size);
+}
+
 extern char __global_base, __data_end, __heap_base;
 
 static void **table;
@@ -63,10 +71,7 @@ static void realloc_table()
     while(table_mask >= 8*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
   if (old_mask != table_mask)
-  {
-    free(mark_table);
-    mark_table = (uint8_t*)malloc(((table_mask+1)>>3)*sizeof(uint8_t));
-  }
+    mark_table = (uint8_t*)emmalloc_realloc_uninitialized(mark_table, (table_mask+1)>>3);
 
   uint64_t *old_used_table = (uint64_t *)used_table;
   void **old_table = table;
