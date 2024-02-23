@@ -29,6 +29,7 @@ void *gc_acquire_strong_ptr(void *weak_or_strong_ptr);
 
 int gc_weak_ptr_equals(void *weak_or_strong_ptr1, void *weak_or_strong_ptr2);
 
+int gc_is_ptr(void *weak_or_strong_ptr);
 int gc_is_weak_ptr(void *weak_or_strong_ptr);
 int gc_is_strong_ptr(void *weak_or_strong_ptr);
 

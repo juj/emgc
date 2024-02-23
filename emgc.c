@@ -184,4 +184,12 @@ void gc_collect_when_stack_is_empty()
   emscripten_set_timeout(collect_when_stack_is_empty, 0, 0);
 }
 
+int gc_is_ptr(void *ptr)
+{
+  GC_MALLOC_ACQUIRE();
+  uint32_t i = find_index(ptr);
+  GC_MALLOC_RELEASE();
+  return i != (uint32_t)-1;
+}
+
 #include "emgc-debug.c"
