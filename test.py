@@ -30,8 +30,8 @@ for m in modes:
     print(' '.join(c))
     try: 
       subprocess.check_call(c)
-      #subprocess.check_call(['node', 'a.js'])
-      subprocess.check_call(['emrun.bat', 'a.html'])
+      subprocess.check_call(['node', 'a.js'])
+      #subprocess.check_call(['emrun.bat', 'a.html'])
       passes += 1
     except Exception as e:
       print(str(e))
