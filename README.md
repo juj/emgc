@@ -17,6 +17,7 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
      - [𝕏² Quadratic Memory Usage](#𝕏-quadratic-memory-usage)
    - [🪦 Finalizer Support](#-finalizer-support)
    - [🔢 WebAssembly SIMD](#-webassembly-simd)
+   - [🧶 Multithreaded Garbage Collection](#-multithreaded-garbage-collection)
  - [🧪 Running Tests](#-running-tests)
 
 # ℹ Introduction
@@ -69,7 +70,7 @@ int main()
 
 To use emgc in your program, compile the file `emgc.c` along with your program code, and `#include "emgc.h"`.
 
-Additionally, you must choose one of the two possible stack scanning modes in order to use Emgc. See the section [Stack Scanning](#stack-scanning) below.
+Additionally, you must **choose one** of the **three** possible operation modes in order to use Emgc. See the section [Stack Scanning](#stack-scanning) below.
 
 # 🔎 Details
 
@@ -192,11 +193,9 @@ To identify managed pointers on the program stack, Emgc automatically scans the 
 
 However, there is a challenge: because WebAssembly places most of its function local variables into Wasm `local`s, and Wasm does not provide means to introspect/enumerate these locals, then by default the LLVM data stack will likely not (by default) contain all of the managed pointers that Emgc would need to observe, which would break the soundness of the garbage collector.
 
-To remedy this, opt in to one of two choices:
+To remedy this, opt in to one of three choices:
 
-1. **--spill-pointers mode**: At the final Wasm link stage, specify the linker flag `-sBINARYEN_EXTRA_PASSES=--spill-pointers`. This causes the Binaryen optimizer to perform a special pointer spilling codegen pass, that will cause anything that looks like a pointer to be explicitly spilled on to the LLVM data stack, in all functions of the program. This way all the managed pointers will be guaranteed to be observable by Emgc when it is scanning the LLVM data stack, making it safe to call `gc_collect()` at any stage of the program.
-
-2. **collect-only-when-stack-is-empty mode**: Alternatively, ensure that you will never call `gc_collect()` when there could potentially exist managed pointers on the stack. A good strategy to deploy this mode is to call the JS `setTimeout()` function to only ever asynchronously invoke a garbage collection in a separate event handler after the stack is empty. The `gc_collect_when_stack_is_empty()` function is provided to conveniently do this. For example:
+1. **collect-on-empty-stack mode**: Use this mode if you are building in single-threaded mode (or are building multi-threaded, but with access to managed state restricted only to a single thread), and can ensure that you will never call `gc_collect()` when there could potentially exist managed pointers on the program stack. A good strategy to deploy this mode is to call the JS `setTimeout()` function to only ever asynchronously invoke a garbage collection in a separate event handler after the stack is empty. The `gc_collect_when_stack_is_empty()` function is provided to conveniently do this. For example:
 
 ```c
 #include "emgc.h"
@@ -210,15 +209,25 @@ void some_function()
 }
 ```
 
-Both modes come with drawbacks:
+2. **--spill-pointers mode**: At the final Wasm link stage, specify the linker flag `-sBINARYEN_EXTRA_PASSES=--spill-pointers`. This causes the Binaryen optimizer to perform a special pointer spilling codegen pass, that will cause anything that looks like a pointer to be explicitly spilled on to the LLVM data stack, in all functions of the program. This way all the managed pointers will be guaranteed to be observable by Emgc when it is scanning the LLVM data stack, making it safe to call `gc_collect()` at any point in the program.
 
-- The --spill-pointers mode reduces performance and increases code size, since every function local variable that might be a pointer needs to be shadow copied to the LLVM data stack. This overhead can be prohibitive.
+3. **Fenced --spill-pointers mode** (also called just the **fenced mode**): This mode is like the **--spill-pointers mode**, but additionally in this mode, access to managed program objects is restricted to only be available after entering a **fenced scope**. This kind of scope declares to Emgc that the current thread is going to act as a mutator that modifies managed object state. Keeping track of these mutator threads enables Emgc to provided multithreading support for garbage collection.
+\
+Additionally, fenced scopes provide an opportunity for a small micro-optimization: only a sub-portion of the thread's call stack will need to be marked to find managed pointers, as the fence delimits where on the stack potential GC pointers might exist.
 
-- In the collect-only-when-stack-is-empty mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha, see the next section on memory usage.
+All these modes come with drawbacks:
+
+- The --spill-pointers modes reduce performance and increases code size, since every function local variable that might be a pointer needs to be shadow copied to the LLVM data stack. This overhead can be prohibitive to some applications.
+
+- Only the fenced --spill-pointers mode can be used in multithreaded applications. The unfenced --spill-pointers mode and the collect-on-empty-stack mode cannot be used when building with multithreading enabled.
+
+- The fenced --spill-pointers mode carries a potentially heavy overhead to the generated code size, as cooperative marking points will need to be emitted across all functions in the program.
+
+- In the collect-on-empty-stack mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha, see the next section on memory usage.
 
 #### 𝕏² Quadratic Memory Usage
 
-Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-only-when-stack-is-empty stack scanning scheme. For example, the following code:
+Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-on-empty-stack scanning mode. For example, the following code:
 
 ```c
 char *linear_or_quadratic_memory_use()
@@ -238,7 +247,7 @@ char *linear_or_quadratic_memory_use()
 }
 ```
 
-The above code generates a long string by concatenating `"foo"` 10000 times. If the heap is about to run out of memory, `gc_malloc()` can collect garbage on demand if running with the `--spill-pointers` flag mode. This means that the above code will first consume some amount of temporary memory (as the available heap size permits), which will be promptly collected, and then finally the code persists `10000 * strlen("foo")+1` == `30001 bytes` of memory for the string at the end of the function.
+The above code generates a long string by concatenating `"foo"` 10000 times. If the heap is about to run out of memory, `gc_malloc()` can collect garbage on demand if running in the `--spill-pointers` mode. This means that the above code will first consume some amount of temporary memory (as the available heap size permits), which will be promptly collected, and then finally the code persists `10000 * strlen("foo")+1` == `30001 bytes` of memory for the string at the end of the function.
 
 If Emgc is operating in only-collect-when-stack-is-empty mode, the above code will temporarily require `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
 
@@ -283,6 +292,26 @@ Emgc optionally utilizes the WebAssembly SIMD instruction set to speed up markin
 In a synthetic, possibly best-case performance test ([test/performance.c](test/performance.c)), Emgc achieves a 1128.32 MB/sec marking speed in scalar mode, and a 3602.85 MB/sec marking speed with SIMD. (3.19x faster)
 
 To enable SIMD optimizations, build with the `-msimd128` flag at both compile and link time.
+
+### 🧶 Multithreaded Garbage Collection
+
+It is possible to utilize Emgc `gc_malloc()` allocations and `gc_collect()` garbage collections from multiple threads.
+
+But in order to do so, Emgc must be operated in the **fenced --spill-pointers** mode. The other two build modes are not viable with multithreaded programs.
+
+In the fenced mode, threads are not allowed to mutate (modify) the contents of any managed objects or managed root regions without entering a fenced scope. It is up to the programmer to ensure that this invariant is enforced.
+
+This fenced scope is entered by calling the function `gc_enter_fenced_access(callback, user1, user2)`. The first parameter to this function is a callback function, which will be immediately (synchronously) called back from inside `gc_enter_fenced_access()`. The two other parameters are custom user data pointers.
+
+Inside this callback function (and anywhere that executes nested inside this call stack scope), the program code is free to perform modifications to GC objects at will.
+
+The functions `gc_malloc()`, `gc_malloc_root()`, `gc_malloc_leaf()` and `gc_acquire_strong_ptr()` may only be called from inside a fenced scope.
+
+The function `gc_collect()` and `gc_collect_when_stack_is_empty()` may be freely called from anywhere **outside** a fenced scope (and will implicity place the caller inside a fenced scope for the duration of the call).
+
+When any thread initiates a garbage collection with `gc_collect()`, all threads that are currently executing code inside a fence will immediately join to simultaneously work on the *mark phase* of the garbage collection in parallel.
+
+When the mark phase is complete, each fenced thread will resume code execution from where they left off inside their fenced scope, and the *sweep phase* will be completed on the background in a single dedicated sweep worker thread.
 
 # 🧪 Running Tests
 
