@@ -162,6 +162,18 @@ static void sweep()
         free_at_index(i + (offset = __builtin_ctzll(b)));
 }
 
+static void mark_current_thread_stack()
+{
+  uintptr_t stack_bottom = emscripten_stack_get_current();
+
+#if defined(__EMSCRIPTEN_SHARED_MEMORY__) || defined(EMGC_FENCED)
+  if (this_thread_accessing_managed_state)
+    mark((void*)stack_bottom, stack_top - stack_bottom);
+#else
+  mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
+#endif
+}
+
 void gc_collect()
 {
   if (!table_mask) return; // TODO: use a ctor to remove this if()?
@@ -176,8 +188,7 @@ void gc_collect()
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
 #endif
 
-  uintptr_t stack_bottom = emscripten_stack_get_current();
-  mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
+  mark_current_thread_stack();
 
   if (roots) mark((void*)roots, (roots_mask+1)*sizeof(void*));
 

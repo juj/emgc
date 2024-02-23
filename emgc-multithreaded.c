@@ -15,11 +15,13 @@ static volatile uint8_t mt_lock = 0;
 #endif
 
 static void mark_from_queue();
+static void mark_current_thread_stack();
 static void mark(void *ptr, size_t bytes);
 static uint32_t find_index(void *ptr);
 
 static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking;
-static __thread int this_thread_accessing_managed_state = 0;
+static __thread int this_thread_accessing_managed_state;
+static __thread uintptr_t stack_top;
 static emscripten_lock_t mark_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 static void **mark_array;
 static _Atomic(uint32_t) mark_head, mark_tail;
@@ -37,12 +39,11 @@ void EMSCRIPTEN_KEEPALIVE gc_participate_to_garbage_collection()
 {
   if (mt_marking_running && this_thread_accessing_managed_state)
   {
-    uintptr_t stack_bottom = emscripten_stack_get_current();
     ++num_threads_ready_to_start_marking;
     wait_for_all_participants();
     while(!can_start_marking) /*nop*/ ;
-    mark((void*)stack_bottom, emscripten_stack_get_base() - stack_bottom);
-    mark_from_queue(); 
+    mark_current_thread_stack();
+    mark_from_queue();
   }
 }
 
@@ -62,7 +63,14 @@ void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
   // scans this stack). Otherwise we simply assist in marking (without scanning
   // this thread's stack).
   if (this_thread_accessing_managed_state) gc_participate_to_garbage_collection();
-  else ++num_threads_accessing_managed_state;
+  else
+  {
+    // Record where the stack is currently at. Any functions before this cannot
+    // contain GC pointers, so this is an easy micro-optimization to local stack
+    // scanning.
+    stack_top = emscripten_stack_get_current();
+    ++num_threads_accessing_managed_state;
+  }
   ++this_thread_accessing_managed_state;
 
   if (mt_marking_running) mark_from_queue();
