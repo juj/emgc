@@ -37,6 +37,7 @@ static uint8_t *mark_table, *used_table;
 static uint32_t num_allocs, num_table_entries, table_mask;
 
 #include "emgc-finalizer.c"
+#include "emgc-multithreaded.c"
 
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
 
@@ -97,10 +98,12 @@ void *gc_malloc(size_t bytes)
 {
   void *ptr = malloc(bytes);
   if (!ptr) return 0;
+  GC_MALLOC_ACQUIRE();
   ++num_allocs;
   ++num_table_entries;
   if (2*num_table_entries >= table_mask) realloc_table();
   table_insert(ptr);
+  GC_MALLOC_RELEASE();
   return ptr;
 }
 
@@ -116,17 +119,20 @@ static void free_at_index(uint32_t i)
 void gc_free(void *ptr)
 {
   if (!ptr) return;
+  GC_MALLOC_ACQUIRE();
   uint32_t i = find_index(ptr);
   if (i != (uint32_t)-1)
   {
     free_at_index(i);
     gc_unmake_root(ptr);
   }
+  GC_MALLOC_RELEASE();
 }
 
 #include "emgc-weak.c"
 #include "emgc-roots.c"
 
+#ifndef __EMSCRIPTEN_SHARED_MEMORY__
 #ifdef __wasm_simd128__
 #include "emgc-simd.c"
 #else
@@ -142,6 +148,7 @@ static void mark(void *ptr, size_t bytes)
       if (!HAS_LEAF_BIT(table[i])) mark(*p, malloc_usable_size(*p));
     }
 }
+#endif
 #endif
 
 static void sweep()
@@ -159,7 +166,10 @@ void gc_collect()
 {
   if (!table_mask) return; // TODO: use a ctor to remove this if()?
 
+  start_multithreaded_collection();
+  GC_MALLOC_ACQUIRE();
   memcpy(mark_table, used_table, (table_mask+1)>>3);
+  start_multithreaded_marking();
   num_finalizers_marked = 0;
 
 #ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
@@ -171,10 +181,14 @@ void gc_collect()
 
   if (roots) mark((void*)roots, (roots_mask+1)*sizeof(void*));
 
+  finish_multithreaded_marking();
+
   sweep();
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
   if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
+
+  GC_MALLOC_RELEASE();
 }
 
 static void collect_when_stack_is_empty(void *unused)
