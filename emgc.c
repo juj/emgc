@@ -24,11 +24,10 @@
 
 size_t malloc_usable_size(void*);
 
-void * __attribute__((weak, __visibility__("default"))) // dlmalloc doesn't have realloc with uninitialization semantics,
-emmalloc_realloc_uninitialized(void *ptr, size_t size)  // so weakly bring over the emmalloc version of it, and use that instead.
+void *realloc_zeroed(void *ptr, size_t size) // TODO: implement this in emmalloc natively
 {
   free(ptr);
-  return malloc(size);
+  return calloc(size, 1);
 }
 
 extern char __global_base, __data_end, __heap_base;
@@ -77,7 +76,7 @@ static void realloc_table()
     while(table_mask >= 8*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
   if (old_mask != table_mask)
-    mark_table = (uint8_t*)emmalloc_realloc_uninitialized(mark_table, (table_mask+1)>>3);
+    mark_table = (uint8_t*)realloc_zeroed(mark_table, (table_mask+1)>>3);
 
   uint64_t *old_used_table = (uint64_t *)used_table;
   void **old_table = table;
@@ -180,7 +179,6 @@ void gc_collect()
 {
   if (!num_allocs) return;
 
-  memset(mark_table, 0, (table_mask+1)>>3);
   num_finalizers_marked = 0;
 
   start_multithreaded_collection();
@@ -199,7 +197,11 @@ void gc_collect()
   sweep();
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
+  // Or if the size doesn't change, then since we still hold the gc_malloc lock, this
+  // is a good moment to clear the mark table back to zero for the next allocation
+  // (which helps avoid a tricky double synchronization at start_multithreaded_collection())
   if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
+  else memset(mark_table, 0, (table_mask+1)>>3);
 
   GC_MALLOC_RELEASE();
 }
