@@ -65,15 +65,7 @@ void GC_CHECKPOINT_KEEPALIVE gc_participate_to_garbage_collection()
 #endif
 }
 
-static void exit_fenced_access()
-{
-  --this_thread_accessing_managed_state;
-  if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
-}
-
-void *js_try_finally(gc_mutator_func func, void *user1, void *user2, void (*finally_func)(void));
-
-void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
+static void enter_gc_fence()
 {
   // If there is a current GC collection going, help out the GC collection before
   // we enter managed state. Need to track two cases: if we have a previous nested
@@ -89,16 +81,26 @@ void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
     stack_top = emscripten_stack_get_current();
     ++num_threads_accessing_managed_state;
   }
-  ++this_thread_accessing_managed_state;
+  ++this_thread_accessing_managed_state;}
+
+static void exit_gc_fence()
+{
+  --this_thread_accessing_managed_state;
+  if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
+}
+
+void *js_try_finally(gc_mutator_func func, void *user1, void *user2, void (*finally_func)(void));
+
+void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
+{
+  enter_gc_fence();
 
   if (mt_marking_running) mark_from_queue();
 
   // Call the mutator callback function in a fashion that safely clears the
   // fence state in case a JavaScript exception is thrown inside the call stack.
-  return js_try_finally(mutator, user1, user2, exit_fenced_access);
+  return js_try_finally(mutator, user1, user2, exit_gc_fence);
 }
-
-static int temporarily_accessing_managed_state = 0;
 
 static void gc_wait_for_all_threads_resumed_execution()
 {
@@ -112,15 +114,9 @@ static void start_multithreaded_collection()
 
   if (!mark_array) mark_array = malloc(512*1024);
   mark_head = mark_tail = 0;
-  temporarily_accessing_managed_state = !this_thread_accessing_managed_state;
-  if (!this_thread_accessing_managed_state)
-  {
-    ++num_threads_accessing_managed_state;
-    this_thread_accessing_managed_state = 1;
-  }
-  num_threads_resumed_execution = 0;
+  enter_gc_fence();
+  num_threads_resumed_execution = num_threads_finished_marking = 0;
   num_threads_ready_to_start_marking = 1;
-  num_threads_finished_marking = 0;
   mt_marking_running = 1;
   wait_for_all_participants();
 #endif
@@ -171,11 +167,7 @@ static void finish_multithreaded_marking()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   mark_from_queue();
   mt_marking_running = 0;
-  if (temporarily_accessing_managed_state)
-  {
-    --num_threads_accessing_managed_state;
-    this_thread_accessing_managed_state = 0;
-  }
+  exit_gc_fence();
 #endif
 }
 
