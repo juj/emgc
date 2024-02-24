@@ -17,12 +17,9 @@ static void mark(void *ptr, size_t bytes)
     v128_t cmp = wasm_v128_and(wasm_u32x4_lt(ptrs, mem_end), wasm_i32x4_eq(wasm_v128_and(ptrs, align_mask), zero));
     if (!wasm_v128_any_true(cmp)) continue;
 
-    uint32_t bits = wasm_i32x4_bitmask(cmp);
-    while(bits)
+    for(uint32_t bits = wasm_i32x4_bitmask(cmp), offset; bits; bits ^= 1 << offset)
     {
-      int offset = __builtin_ctz(bits);
-      bits ^= 1 << offset;
-      void *ptr = p[offset];
+      void *ptr = p[(offset = __builtin_ctz(bits))];
       for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
         if (REMOVE_FLAG_BITS(table[i]) == ptr)
         {
