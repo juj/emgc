@@ -1,5 +1,5 @@
 // Tests garbage collection from a global variable.
-// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
+// flags: -sSPILL_POINTERS
 #include "test.h"
 
 char *global;

@@ -1,5 +1,5 @@
 // Tests the gc_unmake_root() function can be used to unregister an allocation from being a root.
-// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
+// flags: -sSPILL_POINTERS
 #include "test.h"
 
 uintptr_t global;

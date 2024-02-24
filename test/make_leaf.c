@@ -1,3 +1,4 @@
+// Tests the gc_make_leaf() function will result in the memory contents not being scanned.
 #include "test.h"
 
 char *string;

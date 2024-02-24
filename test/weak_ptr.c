@@ -1,5 +1,5 @@
 // Tests that a weak pointer cannot prevent garbage collection.
-// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
+// flags: -sSPILL_POINTERS
 #include "test.h"
 
 void *global;

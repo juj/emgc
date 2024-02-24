@@ -1,6 +1,6 @@
 // This test verifies that a GC pointer that is allocated on the stack of a
 // Wasm Worker will survive gc_collect() from the main thread.
-// flags: -sBINARYEN_EXTRA_PASSES=--instrument-cooperative-gc,--spill-pointers -sWASM_WORKERS -g2
+// flags: -sSPILL_POINTERS -sCOOPERATIVE_GC -sWASM_WORKERS -g2
 // run: browser
 #include "test.h"
 #include <emscripten/wasm_worker.h>

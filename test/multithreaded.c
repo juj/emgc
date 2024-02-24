@@ -1,5 +1,5 @@
 // Tests multithreaded GC allocation in one thread, and collection on another.
-// flags: -sBINARYEN_EXTRA_PASSES=--instrument-cooperative-gc,--spill-pointers -sWASM_WORKERS -g2
+// flags: -sSPILL_POINTERS -sCOOPERATIVE_GC -sWASM_WORKERS -g2
 // run: browser
 #include "test.h"
 #include <emscripten/wasm_worker.h>
