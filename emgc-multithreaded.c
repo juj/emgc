@@ -75,7 +75,7 @@ static void gc_enter_fence()
   // call to gc_enter_fence_cb() from before, do full participation (that
   // scans this stack). Otherwise we simply assist in marking (without scanning
   // this thread's stack).
-  if (this_thread_accessing_managed_state) gc_participate_to_garbage_collection();
+  if (this_thread_accessing_managed_state++) gc_participate_to_garbage_collection();
   else
   {
     // Record where the stack is currently at. Any functions before this cannot
@@ -84,15 +84,13 @@ static void gc_enter_fence()
     stack_top = emscripten_stack_get_current();
     ++num_threads_accessing_managed_state;
   }
-  ++this_thread_accessing_managed_state;
 
   if (mt_marking_running) mark_from_queue();
 }
 
 static void gc_exit_fence()
 {
-  --this_thread_accessing_managed_state;
-  if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
+  if (!--this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
 }
 
 void *js_try_finally(gc_mutator_func func, void *user1, void *user2, void (*finally_func)(void));
@@ -176,6 +174,19 @@ static void finish_multithreaded_marking()
 }
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
+/*
+void BITVEC_CAS_SET(uint8_t *t, uint32_t i)
+{
+  for(;;)
+  {
+    uint8_t old_val = __c11_atomic_load((_Atomic(uint8_t)*)t + (i>>3), __ATOMIC_SEQ_CST);
+    uint8_t expected = old_val;
+    __c11_atomic_compare_exchange_strong((_Atomic(uint8_t)*)t + (i>>3), &old_val, old_val | (1 << (i&7)), __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    if (expected == old_val)
+      break;
+  }
+}
+*/
 static void mark(void *ptr, size_t bytes)
 {
   uint32_t i;
