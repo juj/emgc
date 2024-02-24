@@ -18,7 +18,7 @@ if len(sys.argv) > 1:
   sub = sys.argv[1]
   tests = filter(lambda t: sub in t, tests)
 
-cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js']
+cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '--js-library', 'lib_emgc.js']
 
 failures = []
 passes = 0

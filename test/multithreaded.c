@@ -18,7 +18,7 @@ void collect_periodically(void *unused)
   // go out of sync.
   for(int i = 0; i < 3; ++i) gc_collect();
   uint32_t ptrs_after = gc_num_ptrs();
-  EM_ASM({console.log(`Main thread: Freed ${$0} ptrs (down to ${$1})`)}, ptrs_before - ptrs_after, ptrs_after);
+  gc_log("Freed %d ptrs (down to %d)", ptrs_before - ptrs_after, ptrs_after);
   emscripten_set_timeout(collect_periodically, 100, 0);
 }
 

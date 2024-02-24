@@ -45,6 +45,9 @@ void gc_sleep(double msecs);
 
 void gc_participate_to_garbage_collection(void);
 
+void gc_loge(const char *format, ...);
+void gc_log(const char *format, ...);
+
 #ifdef __cplusplus
 }
 #endif
