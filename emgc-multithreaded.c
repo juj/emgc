@@ -7,11 +7,13 @@ static volatile uint8_t mt_lock = 0;
 #define GC_MALLOC_RELEASE() __sync_lock_release(&mt_lock)
 // Test code to ensure we have tight malloc acquire/release guards in place.
 #define ASSERT_GC_MALLOC_IS_ACQUIRED() assert(mt_lock == 1)
+#define GC_CHECKPOINT_KEEPALIVE EMSCRIPTEN_KEEPALIVE
 #else
 // In singlethreaded builds, no need for locking.
 #define GC_MALLOC_ACQUIRE() ((void)0)
 #define GC_MALLOC_RELEASE() ((void)0)
 #define ASSERT_GC_MALLOC_IS_ACQUIRED() ((void)0)
+#define GC_CHECKPOINT_KEEPALIVE
 #endif
 
 #if defined(__EMSCRIPTEN_SHARED_MEMORY__) || defined(EMGC_FENCED)
@@ -40,8 +42,9 @@ static void wait_for_all_participants()
 
 // Mark as keepalive to make sure it exists in the generated Module so that the
 // --instrument-cooperative-gc Binaryen pass can find it. (TODO: This function shouldn't be exported out to JS)
-void EMSCRIPTEN_KEEPALIVE gc_participate_to_garbage_collection()
+void GC_CHECKPOINT_KEEPALIVE gc_participate_to_garbage_collection()
 {
+#ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (mt_marking_running && this_thread_accessing_managed_state)
   {
     ++num_threads_ready_to_start_marking;
@@ -49,6 +52,7 @@ void EMSCRIPTEN_KEEPALIVE gc_participate_to_garbage_collection()
     mark_current_thread_stack();
     mark_from_queue();
   }
+#endif
 }
 
 static void exit_fenced_access()
@@ -102,6 +106,7 @@ static void wait_for_all_threads_finished_marking()
 
 static void mark_from_queue()
 {
+#ifdef __EMSCRIPTEN_SHARED_MEMORY__
   for(;;)
   {
     emscripten_lock_busyspin_wait_acquire(&mark_lock, 1e9);
@@ -117,6 +122,7 @@ static void mark_from_queue()
     emscripten_lock_release(&mark_lock);
     mark(ptr, malloc_usable_size(ptr));
   }
+#endif
 }
 
 static void finish_multithreaded_marking()
