@@ -41,6 +41,7 @@ void *gc_enter_fenced_access(gc_mutator_func mutator_callback, void *user1, void
 
 uint32_t gc_num_ptrs(void);
 void gc_dump(void);
+void gc_sleep(double msecs);
 
 void gc_participate_to_garbage_collection(void);
 
