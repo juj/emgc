@@ -23,7 +23,7 @@ static void mark(void *ptr, size_t bytes)
       for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
         if (REMOVE_FLAG_BITS(table[i]) == ptr)
         {
-          if (i != INVALID_INDEX && !BITVEC_GET(mark_table, i))
+          if (!BITVEC_GET(mark_table, i))
           {
 //            EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, ptr, i, p+offset);
             BITVEC_SET(mark_table, i);
