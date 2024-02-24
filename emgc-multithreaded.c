@@ -18,7 +18,7 @@ static volatile uint8_t mt_lock = 0;
 #endif
 
 #if defined(__EMSCRIPTEN_SHARED_MEMORY__) || defined(EMGC_FENCED)
-#define ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED() assert(this_thread_accessing_managed_state && "In fenced build mode, GC state must be only accessed from inside gc_enter_fenced_access() scope.")
+#define ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED() assert(this_thread_accessing_managed_state && "In fenced build mode, GC state must be only accessed from inside gc_enter_fence() scope.")
 #else
 #define ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED() ((void)0)
 #endif
@@ -65,11 +65,11 @@ void GC_CHECKPOINT_KEEPALIVE gc_participate_to_garbage_collection()
 #endif
 }
 
-static void enter_gc_fence()
+static void gc_enter_fence()
 {
   // If there is a current GC collection going, help out the GC collection before
   // we enter managed state. Need to track two cases: if we have a previous nested
-  // call to gc_enter_fenced_access() from before, do full participation (that
+  // call to gc_enter_fence_cb() from before, do full participation (that
   // scans this stack). Otherwise we simply assist in marking (without scanning
   // this thread's stack).
   if (this_thread_accessing_managed_state) gc_participate_to_garbage_collection();
@@ -81,9 +81,12 @@ static void enter_gc_fence()
     stack_top = emscripten_stack_get_current();
     ++num_threads_accessing_managed_state;
   }
-  ++this_thread_accessing_managed_state;}
+  ++this_thread_accessing_managed_state;
 
-static void exit_gc_fence()
+  if (mt_marking_running) mark_from_queue();
+}
+
+static void gc_exit_fence()
 {
   --this_thread_accessing_managed_state;
   if (!this_thread_accessing_managed_state) --num_threads_accessing_managed_state;
@@ -91,15 +94,13 @@ static void exit_gc_fence()
 
 void *js_try_finally(gc_mutator_func func, void *user1, void *user2, void (*finally_func)(void));
 
-void *gc_enter_fenced_access(gc_mutator_func mutator, void *user1, void *user2)
+void *gc_enter_fence_cb(gc_mutator_func mutator, void *user1, void *user2)
 {
-  enter_gc_fence();
-
-  if (mt_marking_running) mark_from_queue();
+  gc_enter_fence();
 
   // Call the mutator callback function in a fashion that safely clears the
   // fence state in case a JavaScript exception is thrown inside the call stack.
-  return js_try_finally(mutator, user1, user2, exit_gc_fence);
+  return js_try_finally(mutator, user1, user2, gc_exit_fence);
 }
 
 static void gc_wait_for_all_threads_resumed_execution()
@@ -114,7 +115,7 @@ static void start_multithreaded_collection()
 
   if (!mark_array) mark_array = malloc(512*1024);
   mark_head = mark_tail = 0;
-  enter_gc_fence();
+  gc_enter_fence();
   num_threads_resumed_execution = num_threads_finished_marking = 0;
   num_threads_ready_to_start_marking = 1;
   mt_marking_running = 1;
@@ -167,7 +168,7 @@ static void finish_multithreaded_marking()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   mark_from_queue();
   mt_marking_running = 0;
-  exit_gc_fence();
+  gc_exit_fence();
 #endif
 }
 

@@ -60,7 +60,7 @@ void *work(void *user1, void *user2)
 
 void worker_main()
 {
-  gc_enter_fenced_access(work, 0, 0);
+  gc_enter_fence_cb(work, 0, 0);
 }
 
 int main()

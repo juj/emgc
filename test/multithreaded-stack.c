@@ -35,7 +35,7 @@ void *work(void *user1, void *user2)
 
 void worker_main()
 {
-  gc_enter_fenced_access(work, 0, 0);
+  gc_enter_fence_cb(work, 0, 0);
 }
 
 void* func(void *user1, void *user2)
@@ -47,7 +47,7 @@ void* func(void *user1, void *user2)
 
 int main()
 {
-  gc_enter_fenced_access(func, 0, 0);
+  gc_enter_fence_cb(func, 0, 0);
   worker = emscripten_malloc_wasm_worker(1024);
   emscripten_wasm_worker_post_function_v(worker, worker_main);
 }

@@ -37,7 +37,7 @@ typedef void (*gc_finalizer)(void *ptr);
 void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
 
 typedef void *(*gc_mutator_func)(void *user1, void *user2);
-void *gc_enter_fenced_access(gc_mutator_func mutator_callback, void *user1, void *user2);
+void *gc_enter_fence_cb(gc_mutator_func mutator_callback, void *user1, void *user2);
 
 uint32_t gc_num_ptrs(void);
 void gc_dump(void);

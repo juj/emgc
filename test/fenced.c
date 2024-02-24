@@ -12,7 +12,7 @@ void *work(void *user1, void *user2)
 
 int main()
 {
-  gc_enter_fenced_access(work, 0, 0);
+  gc_enter_fence_cb(work, 0, 0);
   gc_collect();
   require(gc_num_ptrs() == 1 && "Pointer in fenced access should not have gotten freed.");
 }

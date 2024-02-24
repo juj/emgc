@@ -301,7 +301,7 @@ But in order to do so, Emgc must be operated in the **fenced --spill-pointers** 
 
 In the fenced mode, threads are not allowed to mutate (modify) the contents of any managed objects or managed root regions without entering a fenced scope. It is up to the programmer to ensure that this invariant is enforced.
 
-This fenced scope is entered by calling the function `gc_enter_fenced_access(callback, user1, user2)`. The first parameter to this function is a callback function, which will be immediately (synchronously) called back from inside `gc_enter_fenced_access()`. The two other parameters are custom user data pointers. The passed callback may return a `void*` parameter back to the caller.
+This fenced scope is entered by calling the function `gc_enter_fence_cb(callback, user1, user2)`. The first parameter to this function is a callback function, which will be immediately (synchronously) called back from inside `gc_enter_fence_cb()`. The two other parameters are custom user data pointers. The passed callback may return a `void*` parameter back to the caller.
 
 Inside this callback function (and anywhere that executes nested inside this call stack scope), the program code is free to perform modifications to GC objects and allocate new GC objects. For example:
 
@@ -315,7 +315,7 @@ void work(void *user1, void *user2)
 
 int main()
 {
-  gc_enter_fenced_access(work, 0, 0);
+  gc_enter_fence_cb(work, 0, 0);
   gc_collect(); // We can collect outside fenced scope.
 }
 ```
@@ -330,7 +330,7 @@ When the mark phase is complete, each fenced thread will resume code execution f
 
 Fenced mode is always enabled when building with `-sWASM_WORKERS` or `-pthread`. You can also manually activate fenced mode by building with `-DEMGC_FENCED`.
 
-N.b. if you are building C++ code with C++ exceptions enabled, you should manually ensure that no exception will unwind the `gc_enter_fenced_access()` function from the callstack.
+N.b. if you are building C++ code with C++ exceptions enabled, you should manually ensure that no exception will unwind the `gc_enter_fence_cb()` function from the callstack.
 
 # 🧪 Running Tests
 
