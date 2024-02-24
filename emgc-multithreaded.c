@@ -4,7 +4,7 @@
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
 // In multithreaded builds, use a simple global spinlock strategy to acquire/release access to the memory allocator.
 static volatile uint8_t mt_lock = 0;
-#define GC_MALLOC_ACQUIRE() while (__sync_lock_test_and_set(&mt_lock, 1)) { while (mt_lock) { /*nop*/ } }
+#define GC_MALLOC_ACQUIRE() while (__sync_lock_test_and_set(&mt_lock, 1)) { while (mt_lock) { ; } } // nop
 #define GC_MALLOC_RELEASE() __sync_lock_release(&mt_lock)
 // Test code to ensure we have tight malloc acquire/release guards in place.
 #define ASSERT_GC_MALLOC_IS_ACQUIRED() assert(mt_lock == 1)
@@ -35,20 +35,22 @@ static emscripten_lock_t mark_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 static void **mark_array;
 static _Atomic(uint32_t) mark_head, mark_tail;
 
-void gc_sleep(double nsecs)
+static void gc_uninterrupted_sleep(double nsecs)
 {
-  if (emscripten_current_thread_is_wasm_worker()) emscripten_wasm_worker_sleep(nsecs);
-  else
-  {
-    double t = emscripten_performance_now() + nsecs/1000000.0;
-    while(emscripten_performance_now() < t) /*nop*/;
-  }
+  if (emscripten_current_thread_is_wasm_worker()) { int32_t dummy = 0; __builtin_wasm_memory_atomic_wait32(&dummy, 0, nsecs); }
+  else for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) ; // nop
+}
+
+// TODO: attribute(noinline) doesn't seem to prevent this function from not being inlined. Adding EMSCRIPTEN_KEEPALIVE seems to help, but is excessive.
+void EMSCRIPTEN_KEEPALIVE __attribute__((noinline)) gc_sleep(double nsecs)
+{
+  for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) gc_uninterrupted_sleep(100);
 }
 
 static void wait_for_all_participants()
 {
   // Wait for all threads currently executing in managed context to gather up together for the collection.
-  while(num_threads_ready_to_start_marking < num_threads_accessing_managed_state) gc_sleep(1);
+  while(num_threads_ready_to_start_marking < num_threads_accessing_managed_state) gc_uninterrupted_sleep(1);
 }
 
 // Mark as keepalive to make sure it exists in the generated Module so that the
@@ -106,7 +108,7 @@ void *gc_enter_fence_cb(gc_mutator_func mutator, void *user1, void *user2)
 
 static void gc_wait_for_all_threads_resumed_execution()
 {
-  while(num_threads_resumed_execution < num_threads_finished_marking) gc_sleep(1);
+  while(num_threads_resumed_execution < num_threads_finished_marking) gc_uninterrupted_sleep(1);
 }
 
 static void start_multithreaded_collection()
@@ -126,7 +128,7 @@ static void start_multithreaded_collection()
 
 static void wait_for_all_threads_finished_marking()
 {
-  while(mt_marking_running && num_threads_finished_marking < num_threads_ready_to_start_marking) gc_sleep(1);
+  while(mt_marking_running && num_threads_finished_marking < num_threads_ready_to_start_marking) gc_uninterrupted_sleep(1);
   ++num_threads_resumed_execution;
 }
 

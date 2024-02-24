@@ -4,6 +4,7 @@
 #include "test.h"
 #include <emscripten/wasm_worker.h>
 #include <emscripten/eventloop.h>
+#include <emscripten/html5.h>
 
 emscripten_wasm_worker_t worker;
 
@@ -12,13 +13,20 @@ _Atomic(int) worker_quit;
 void collect_periodically(void *unused)
 {
   uint32_t ptrs_before = gc_num_ptrs();
+
+  // Benchmark collection speed.
+  double t0 = emscripten_performance_now();
+  gc_collect();
+  double t1 = emscripten_performance_now();
+
   // Collect back-to-back a couple of times to stress test the scenario
   // when a new GC is invoked immediately after a previous one finishes, to verify
   // that the worker threads that are resuming execution after previous GC won't
   // go out of sync.
   for(int i = 0; i < 3; ++i) gc_collect();
+
   uint32_t ptrs_after = gc_num_ptrs();
-  gc_log("Freed %d ptrs (down to %d)", ptrs_before - ptrs_after, ptrs_after);
+  gc_log("Freed %d ptrs (down to %d). Collect took %f msecs.", ptrs_before - ptrs_after, ptrs_after, t1-t0);
   emscripten_set_timeout(collect_periodically, 100, 0);
 }
 
@@ -44,7 +52,7 @@ void *work(void *user1, void *user2)
   int ***gc_mem = 0, ***gc_mem_prev = 0;
   while(!__c11_atomic_load(&worker_quit, __ATOMIC_SEQ_CST))
   {
-    gc_sleep(10000000);
+    gc_sleep(10 * 1000000);
     if (gc_mem_prev)
     {
       require(gc_is_ptr(gc_mem_prev));
