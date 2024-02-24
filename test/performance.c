@@ -12,6 +12,7 @@ int main()
   for(uint32_t i = 0; i < 900ull*1024*1024; ++i)
     if ((rand() % 10) < 3)
       large[i] = rand();
+  PIN(&large);
   double t0 = emscripten_performance_now();
   gc_collect(); // will not scan contents of 'string', so the second allocation should be collected.
   double t1 = emscripten_performance_now();

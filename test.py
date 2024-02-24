@@ -30,7 +30,6 @@ for m in modes:
 #    if run_in_browser:
 #      c += ['--emrun']
     flags = re.findall(r"// flags: (.*)", open(t, 'r').read())
-    print(flags)
     if len(flags) > 0:
       for f in flags:
         c += f.split(' ')
