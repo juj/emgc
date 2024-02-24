@@ -37,8 +37,11 @@ static _Atomic(uint32_t) mark_head, mark_tail;
 
 static void gc_uninterrupted_sleep(double nsecs)
 {
+#if defined(__EMSCRIPTEN_SHARED_MEMORY__)
   if (emscripten_current_thread_is_wasm_worker()) { int32_t dummy = 0; __builtin_wasm_memory_atomic_wait32(&dummy, 0, nsecs); }
-  else for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) ; // nop
+  else
+#endif
+    for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) ; // nop
 }
 
 // TODO: attribute(noinline) doesn't seem to prevent this function from not being inlined. Adding EMSCRIPTEN_KEEPALIVE seems to help, but is excessive.
