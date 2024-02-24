@@ -8,7 +8,7 @@ static volatile uint8_t mt_lock = 0;
 #define GC_MALLOC_RELEASE() __sync_lock_release(&mt_lock)
 // Test code to ensure we have tight malloc acquire/release guards in place.
 #define ASSERT_GC_MALLOC_IS_ACQUIRED() assert(mt_lock == 1)
-#define GC_CHECKPOINT_KEEPALIVE EMSCRIPTEN_KEEPALIVE
+#define GC_CHECKPOINT_KEEPALIVE EMSCRIPTEN_KEEPALIVE __attribute__((noinline))
 #else
 // In singlethreaded builds, no need for locking.
 #define GC_MALLOC_ACQUIRE() ((void)0)
@@ -44,6 +44,7 @@ void gc_sleep(double nsecs)
     while(emscripten_performance_now() < t) /*nop*/;
   }
 }
+
 static void wait_for_all_participants()
 {
   // Wait for all threads currently executing in managed context to gather up together for the collection.
