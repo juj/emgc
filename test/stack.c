@@ -1,4 +1,5 @@
 // Tests garbage collection from a stack variable.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 void func()

@@ -1,4 +1,5 @@
 // Tests memory pressure with a lot of temporary managed allocations.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 #include <string.h>
 

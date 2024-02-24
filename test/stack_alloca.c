@@ -1,4 +1,5 @@
 // Tests garbage collection from GC pointers stored in an alloca().
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 void func()

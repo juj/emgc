@@ -1,4 +1,5 @@
 // This test verifies that the fenced mode works in singlethreaded builds.
+// flags: -DEMGC_FENCED=1 -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 char *global;

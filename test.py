@@ -1,4 +1,4 @@
-import glob, subprocess, sys
+import glob, subprocess, sys, re
 modes = []
 
 for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
@@ -18,9 +18,7 @@ if len(sys.argv) > 1:
   sub = sys.argv[1]
   tests = filter(lambda t: sub in t, tests)
 
-#cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--spill-pointers', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']#, '-sMINIMAL_RUNTIME']
-# TODO: Mechanism to differentiate between html and js tests
-cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '-sBINARYEN_EXTRA_PASSES=--instrument-cooperative-gc,--spill-pointers', '-sALLOW_MEMORY_GROWTH', '-sMAXIMUM_MEMORY=4GB']#, '-sWASM_WORKERS']#, '-sMINIMAL_RUNTIME']
+cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js']
 
 failures = []
 passes = 0
@@ -28,11 +26,21 @@ passes = 0
 for m in modes:
   for t in tests:
     c = cmd + m + [t]
+    run_in_browser = '// run: browser' in open(t, 'r').read()
+#    if run_in_browser:
+#      c += ['--emrun']
+    flags = re.findall(r"// flags: (.*)", open(t, 'r').read())
+    print(flags)
+    if len(flags) > 0:
+      for f in flags:
+        c += f.split(' ')
     print(' '.join(c))
-    try: 
+    try:
       subprocess.check_call(c)
-      subprocess.check_call(['node', 'a.js'])
-      #subprocess.check_call(['emrun.bat', 'a.html'])
+      if run_in_browser:
+        pass #subprocess.check_call(['emrun.bat', 'a.html'])
+      else:
+        subprocess.check_call(['node', 'a.js'])
       passes += 1
     except Exception as e:
       print(str(e))

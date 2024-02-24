@@ -1,5 +1,6 @@
 // Tests that A->B link of objects will hold B alive through garbage collection,
 // as long as A is being directly referenced.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 char **global;

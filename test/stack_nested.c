@@ -1,5 +1,6 @@
 // Tests garbage collection from a stack variable that resides in the parent/caller frame, and not in the same
 // function frame where the garbage collection occurs.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 void func2()

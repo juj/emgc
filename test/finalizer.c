@@ -1,4 +1,5 @@
 // Tests invocation of finalizers.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 int my_finalizer_executed = 0;

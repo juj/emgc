@@ -1,4 +1,5 @@
 // Tests the gc_make_root() function will keep an allocation alive.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 void func()

@@ -1,3 +1,5 @@
+// Tests how fast the marking process can run on a large allocation array.
+// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 #include <emscripten/html5.h>
 

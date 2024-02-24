@@ -1,5 +1,7 @@
 // This test verifies that a GC pointer that is allocated on the stack of a
 // Wasm Worker will survive gc_collect() from the main thread.
+// flags: -sBINARYEN_EXTRA_PASSES=--instrument-cooperative-gc,--spill-pointers -sWASM_WORKERS
+// run: browser
 #include "test.h"
 #include <emscripten/wasm_worker.h>
 
@@ -36,15 +38,16 @@ void worker_main()
   gc_enter_fenced_access(work, 0, 0);
 }
 
-void func()
+void* func(void *user1, void *user2)
 {
   char *ptr = (char*)gc_malloc(1024); // this ptr should be getting collected.
   EM_ASM({console.log(`Ptr 0x${$0.toString(16)} allocated on main thread, should be freed in collection.`)}, ptr);
+  return 0;
 }
 
 int main()
 {
-  CALL_INDIRECTLY(func);
+  gc_enter_fenced_access(func, 0, 0);
   worker = emscripten_malloc_wasm_worker(1024);
   emscripten_wasm_worker_post_function_v(worker, worker_main);
 }

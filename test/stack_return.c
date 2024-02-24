@@ -1,4 +1,5 @@
 // Tests garbage collection from a stack variable, but the stack variable will be returned to the calling function.
+// flags: -sBINARYEN_EXTRA_PASSES=--spill-pointers
 #include "test.h"
 
 void *func2()
