@@ -36,7 +36,7 @@ static __thread int this_thread_accessing_managed_state;
 static __thread uintptr_t stack_top;
 #define MARK_QUEUE_MASK 1023
 static _Atomic(void*) *mark_queue;
-static _Atomic(uint32_t) producer_head, producer_tail, consumer_head, consumer_tail;
+static _Atomic(uint32_t) producer_head, consumer_head, queue_tail;
 
 static void gc_uninterrupted_sleep(double nsecs)
 {
@@ -116,7 +116,7 @@ static void start_multithreaded_collection()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   gc_wait_for_all_threads_resumed_execution();
 
-  producer_head = producer_tail = consumer_head = consumer_tail = 0;
+  producer_head = consumer_head = queue_tail = 0;
   gc_enter_fence();
   num_threads_resumed_execution = num_threads_finished_marking = 0;
   num_threads_ready_to_start_marking = 1;
@@ -150,14 +150,12 @@ static void mark_from_queue()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   for(;;)
   {
-    uint32_t tail = consumer_tail;
+    uint32_t tail = queue_tail;
 again:
     if (tail >= consumer_head) break;
-    uint32_t actual = cas_u32(&consumer_tail, tail, tail+1);
-    if (actual != tail) { tail = actual; goto again; }
-
     void *ptr = mark_queue[tail & MARK_QUEUE_MASK];
-    while(cas_u32(&producer_tail, tail, tail+1) != tail) ; // nop
+    uint32_t actual = cas_u32(&queue_tail, tail, tail+1);
+    if (actual != tail) { tail = actual; goto again; }
 
     mark(ptr, malloc_usable_size(ptr));
   }
@@ -208,7 +206,7 @@ again_bit:
     {
       uint32_t head = producer_head;
 again_head:
-      if (head >= producer_tail + MARK_QUEUE_MASK) mark(sp, malloc_usable_size(sp)); // The shared work queue is full, so mark unshared recursively on local stack
+      if (head >= queue_tail + MARK_QUEUE_MASK) mark(sp, malloc_usable_size(sp)); // The shared work queue is full, so mark unshared recursively on local stack
       else
       {
         uint32_t actual = cas_u32(&producer_head, head, head+1);
