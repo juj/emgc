@@ -32,9 +32,8 @@ static uint32_t find_index(void *ptr);
 static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking, num_threads_finished_marking, num_threads_resumed_execution;
 static __thread int this_thread_accessing_managed_state;
 static __thread uintptr_t stack_top;
-static emscripten_lock_t mark_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 static void **mark_array;
-static _Atomic(uint32_t) mark_head, mark_tail;
+static _Atomic(uint32_t) producer_head, producer_tail, consumer_head, consumer_tail;
 
 static void gc_uninterrupted_sleep(double nsecs)
 {
@@ -115,7 +114,7 @@ static void start_multithreaded_collection()
   gc_wait_for_all_threads_resumed_execution();
 
   if (!mark_array) mark_array = malloc(512*1024);
-  mark_head = mark_tail = 0;
+  producer_head = producer_tail = consumer_head = consumer_tail = 0;
   gc_enter_fence();
   num_threads_resumed_execution = num_threads_finished_marking = 0;
   num_threads_ready_to_start_marking = 1;
@@ -148,17 +147,22 @@ static void mark_from_queue()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   for(;;)
   {
-    gc_acquire_lock(&mark_lock);
-    if (mark_head == mark_tail)
+tail_again:
+    uint32_t tail = __c11_atomic_load(&consumer_tail, __ATOMIC_SEQ_CST);
+    if (tail < consumer_head)
     {
-      gc_release_lock(&mark_lock);
+      uint32_t old_tail = tail;
+      __c11_atomic_compare_exchange_strong(&consumer_tail, &old_tail, tail+1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+      if (old_tail != tail) goto tail_again;
+    }
+    else
+    {
       ++num_threads_finished_marking;
       wait_for_all_threads_finished_marking();
       return;
     }
-    void *ptr = mark_array[mark_tail];
-    mark_tail = (mark_tail + 1) & (512*1024-1);
-    gc_release_lock(&mark_lock);
+    void *ptr = mark_array[tail];
+    __c11_atomic_fetch_add(&producer_tail, 1, __ATOMIC_SEQ_CST);
     mark(ptr, malloc_usable_size(ptr));
   }
 #endif
@@ -185,38 +189,43 @@ static void finish_multithreaded_marking()
 }
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
-/*
-void BITVEC_CAS_SET(uint8_t *t, uint32_t i)
-{
-  for(;;)
-  {
-    uint8_t old_val = __c11_atomic_load((_Atomic(uint8_t)*)t + (i>>3), __ATOMIC_SEQ_CST);
-    uint8_t expected = old_val;
-    __c11_atomic_compare_exchange_strong((_Atomic(uint8_t)*)t + (i>>3), &old_val, old_val | (1 << (i&7)), __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-    if (expected == old_val)
-      break;
-  }
-}
-*/
+
 static void mark(void *ptr, size_t bytes)
 {
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = find_index(*p)) != INVALID_INDEX && !BITVEC_GET(mark_table, i))
+  {
+    if ((i = find_index(*p)) == INVALID_INDEX) continue;
+    uint8_t bit = ((uint8_t)1 << (i&7));
+    _Atomic(uint8_t) *mark_addr = (_Atomic(uint8_t)*)mark_table + (i>>3);
+
+again:
+    uint8_t old_val = __c11_atomic_load(mark_addr, __ATOMIC_SEQ_CST);
+    if ((old_val & bit)) continue;
+    uint8_t new_val = old_val | bit;
+    uint8_t expected = old_val;
+    __c11_atomic_compare_exchange_strong(mark_addr, &old_val, new_val, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    if (old_val != expected)
     {
-      gc_acquire_lock(&mark_lock);
-
-      BITVEC_SET(mark_table, i);
-
-      if (HAS_FINALIZER_BIT(table[i])) ++num_finalizers_marked;
-      if (!HAS_LEAF_BIT(table[i]))
-      {
-        mark_array[mark_head] = *p;
-        mark_head = (mark_head + 1) & (512*1024-1); // TODO if (mark_head+1 == mark_tail)
-      }
-      gc_release_lock(&mark_lock);
+      if ((old_val & bit)) continue; // Another thread beat us to it, we can skip over this item
+      goto again; // Some other bit in this byte got flipped, retry.
     }
+
+    if (HAS_FINALIZER_BIT(table[i])) ++num_finalizers_marked;
+    if (!HAS_LEAF_BIT(table[i]))
+    {
+      uint32_t head = __c11_atomic_fetch_add(&producer_head, 1, __ATOMIC_SEQ_CST);
+      __c11_atomic_store((_Atomic(void *)*)mark_array + head, *p, __ATOMIC_SEQ_CST);
+
+      for(;;)
+      {
+        uint32_t old_head = head;
+        __c11_atomic_compare_exchange_strong(&consumer_head, &old_head, head+1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+        if (old_head == head) break;
+      }
+    }
+  }
 }
 
 static char sweep_worker_stack[256];
