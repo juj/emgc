@@ -201,10 +201,10 @@ static void mark(void *ptr, size_t bytes)
     uint8_t bit = ((uint8_t)1 << (i&7));
     _Atomic(uint8_t) *marks = (_Atomic(uint8_t)*)mark_table + (i>>3);
     uint8_t old = *marks;
-again:
+again_bit:
     if ((old & bit)) continue; // This pointer is already marked? Then can skip it.
     uint8_t actual = cas_u8(marks, old, old | bit);
-    if (old != actual) { old = actual; goto again; } // Some other bit in this byte got flipped by another thread, retry marking this.
+    if (old != actual) { old = actual; goto again_bit; } // Some other bit in this byte got flipped by another thread, retry marking this.
 
     if (HAS_FINALIZER_BIT(table[i])) ++num_finalizers_marked;
     if (!HAS_LEAF_BIT(table[i]))
