@@ -31,7 +31,6 @@ void collect_periodically(void *unused)
   emscripten_set_timeout(collect_periodically, 100, 0);
 }
 
-
 void notify_worker_quit()
 {
   for(int i = 0; i < NT; ++i)
