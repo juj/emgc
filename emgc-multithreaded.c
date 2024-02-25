@@ -34,7 +34,8 @@ static uint32_t find_index(void *ptr);
 static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking, num_threads_finished_marking, num_threads_resumed_execution;
 static __thread int this_thread_accessing_managed_state;
 static __thread uintptr_t stack_top;
-static void **mark_array;
+#define MARK_QUEUE_MASK 1023
+static void **mark_queue;
 static _Atomic(uint32_t) producer_head, producer_tail, consumer_head, consumer_tail;
 
 static void gc_uninterrupted_sleep(double nsecs)
@@ -115,7 +116,6 @@ static void start_multithreaded_collection()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   gc_wait_for_all_threads_resumed_execution();
 
-  if (!mark_array) mark_array = malloc(512*1024);
   producer_head = producer_tail = consumer_head = consumer_tail = 0;
   gc_enter_fence();
   num_threads_resumed_execution = num_threads_finished_marking = 0;
@@ -151,21 +151,17 @@ static void mark_from_queue()
   for(;;)
   {
     uint32_t tail = consumer_tail;
-tail_again:
-    if (tail < consumer_head)
-    {
-      uint32_t actual = cas_u32(&consumer_tail, tail, tail+1);
-      if (actual != tail) { tail = actual; goto tail_again; }
-    }
-    else
-    {
-      wait_for_all_threads_finished_marking();
-      return;
-    }
-    void *ptr = mark_array[tail];
-    __c11_atomic_fetch_add(&producer_tail, 1, __ATOMIC_SEQ_CST);
+again:
+    if (tail >= consumer_head) break;
+    uint32_t actual = cas_u32(&consumer_tail, tail, tail+1);
+    if (actual != tail) { tail = actual; goto again; }
+
+    void *ptr = mark_queue[tail & MARK_QUEUE_MASK];
+    while(cas_u32(&producer_tail, tail, tail+1) != tail) ; // nop
+
     mark(ptr, malloc_usable_size(ptr));
   }
+  wait_for_all_threads_finished_marking();
 #endif
 }
 
@@ -209,9 +205,16 @@ again_bit:
     if (HAS_FINALIZER_BIT(table[i])) ++num_finalizers_marked;
     if (!HAS_LEAF_BIT(table[i]))
     {
-      uint32_t head = __c11_atomic_fetch_add(&producer_head, 1, __ATOMIC_SEQ_CST);
-      mark_array[head] = *p;
-      while(cas_u32(&consumer_head, head, head+1) != head) ; // nop
+      uint32_t head = producer_head;
+again_head:
+      if (head >= producer_tail + MARK_QUEUE_MASK) mark(*p, malloc_usable_size(*p)); // The shared work queue is full, so mark unshared recursively on local stack
+      else
+      {
+        uint32_t actual = cas_u32(&producer_head, head, head+1);
+        if (actual != head) { head = actual; goto again_head; }
+        mark_queue[head & MARK_QUEUE_MASK] = *p;
+        while(cas_u32(&consumer_head, head, head+1) != head) ; // nop
+      }
     }
   }
 }
@@ -231,8 +234,9 @@ static void sweep_worker_main()
   sweep_worker_running = 0;
 }
 
-__attribute__((constructor(40))) static void initialize_sweep_worker()
+__attribute__((constructor(40))) static void initialize_multithreaded_gc()
 {
+  mark_queue = malloc((MARK_QUEUE_MASK+1)*sizeof(void*));
   worker = emscripten_create_wasm_worker(sweep_worker_stack, sizeof(sweep_worker_stack));
   emscripten_wasm_worker_post_function_v(worker, sweep_worker_main);
 }
