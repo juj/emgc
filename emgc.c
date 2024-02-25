@@ -161,6 +161,13 @@ static void sweep()
     for(uint32_t i = 0, offset; i <= table_mask; i += 64)
       for(uint64_t b = ((uint64_t*)used_table)[i>>6] & ~((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
         free_at_index(i + (offset = __builtin_ctzll(b)));
+
+  // Compactify managed allocation array if it is now overly large to fit all allocations.
+  // Or if the size doesn't change, then since we still hold the gc_malloc lock, this
+  // is a good moment to clear the mark table back to zero for the next allocation
+  // (which helps avoid a tricky double synchronization at start_multithreaded_collection())
+  if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
+  else memset(mark_table, 0, (table_mask+1)>>3);
 }
 
 static void mark_current_thread_stack()
@@ -179,10 +186,12 @@ void gc_collect()
 {
   if (!num_allocs) return;
 
+  GC_MALLOC_ACQUIRE(); // Acquire GC lock so that we know that the sweep worker has finished.
+  GC_MALLOC_RELEASE(); // But release it immediately, since other threads may still sneak in a gc malloc before realizing they need to participate to collection.
+
   num_finalizers_marked = 0;
 
   start_multithreaded_collection();
-  GC_MALLOC_ACQUIRE();
 
 #ifndef EMGC_SKIP_AUTOMATIC_STATIC_MARKING
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
@@ -192,18 +201,11 @@ void gc_collect()
 
   if (roots) mark((void*)roots, (roots_mask+1)*sizeof(void*));
 
-  finish_multithreaded_marking();
-
-  sweep();
-
-  // Compactify managed allocation array if it is now overly large to fit all allocations.
-  // Or if the size doesn't change, then since we still hold the gc_malloc lock, this
-  // is a good moment to clear the mark table back to zero for the next allocation
-  // (which helps avoid a tricky double synchronization at start_multithreaded_collection())
-  if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
-  else memset(mark_table, 0, (table_mask+1)>>3);
-
-  GC_MALLOC_RELEASE();
+#if defined(__EMSCRIPTEN_SHARED_MEMORY__)
+  finish_multithreaded_marking(); // In mt builds, delegate sweeping (and the active gc lock) to a sweep worker.
+#else
+  sweep(); // In st builds, complete sweeping here.
+#endif
 }
 
 static void collect_when_stack_is_empty(void *unused)

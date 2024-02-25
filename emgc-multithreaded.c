@@ -23,6 +23,7 @@ static volatile uint8_t mt_lock = 0;
 #define ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED() ((void)0)
 #endif
 
+static void sweep();
 static void mark_from_queue();
 static void mark_current_thread_stack();
 static void mark(void *ptr, size_t bytes);
@@ -124,6 +125,7 @@ static void start_multithreaded_collection()
   num_threads_ready_to_start_marking = 1;
   mt_marking_running = 1;
   wait_for_all_participants();
+  GC_MALLOC_ACQUIRE();
 #endif
 }
 
@@ -166,12 +168,17 @@ static void mark_from_queue()
 #endif
 }
 
+static emscripten_semaphore_t sweep_command = EMSCRIPTEN_SEMAPHORE_T_STATIC_INITIALIZER(0);
+
 static void finish_multithreaded_marking()
 {
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   mark_from_queue();
   mt_marking_running = 0;
   gc_exit_fence();
+
+  // Instruct the sweep worker to start sweeping.
+  emscripten_semaphore_release(&sweep_command, 1);
 #endif
 }
 
@@ -209,4 +216,26 @@ static void mark(void *ptr, size_t bytes)
       gc_release_lock(&mark_lock);
     }
 }
+
+static _Atomic(int) worker_quit;
+static char sweep_worker_stack[256];
+static emscripten_wasm_worker_t worker;
+
+static void sweep_worker_main()
+{
+  for(;;)
+  {
+    emscripten_semaphore_waitinf_acquire(&sweep_command, 1);
+    if (worker_quit) break;
+    sweep();
+    GC_MALLOC_RELEASE();
+  }
+}
+
+__attribute__((constructor(40))) static void initialize_sweep_worker()
+{
+  worker = emscripten_create_wasm_worker(sweep_worker_stack, sizeof(sweep_worker_stack));
+  emscripten_wasm_worker_post_function_v(worker, sweep_worker_main);
+}
+
 #endif
