@@ -196,6 +196,12 @@ static uint8_t cas_u8(_Atomic(uint8_t) *addr, uint8_t prev, uint8_t new)
   return prev;
 }
 
+static uint32_t cas_u32(_Atomic(uint32_t) *addr, uint32_t prev, uint32_t new)
+{
+  __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+  return prev;
+}
+
 static void mark(void *ptr, size_t bytes)
 {
   uint32_t i;
@@ -215,14 +221,8 @@ again:
     if (!HAS_LEAF_BIT(table[i]))
     {
       uint32_t head = __c11_atomic_fetch_add(&producer_head, 1, __ATOMIC_SEQ_CST);
-      __c11_atomic_store((_Atomic(void *)*)mark_array + head, *p, __ATOMIC_SEQ_CST);
-
-      for(;;)
-      {
-        uint32_t old_head = head;
-        __c11_atomic_compare_exchange_strong(&consumer_head, &old_head, head+1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-        if (old_head == head) break;
-      }
+      mark_array[head] = *p;
+      while(cas_u32(&consumer_head, head, head+1) != head) ; // nop
     }
   }
 }
