@@ -35,7 +35,7 @@ static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num
 static __thread int this_thread_accessing_managed_state;
 static __thread uintptr_t stack_top;
 #define MARK_QUEUE_MASK 1023
-static void **mark_queue;
+static _Atomic(void*) *mark_queue;
 static _Atomic(uint32_t) producer_head, producer_tail, consumer_head, consumer_tail;
 
 static void gc_uninterrupted_sleep(double nsecs)
@@ -236,7 +236,7 @@ static void sweep_worker_main()
 
 __attribute__((constructor(40))) static void initialize_multithreaded_gc()
 {
-  mark_queue = malloc((MARK_QUEUE_MASK+1)*sizeof(void*));
+  mark_queue = (_Atomic(void*)*) malloc((MARK_QUEUE_MASK+1)*sizeof(void*));
   worker = emscripten_create_wasm_worker(sweep_worker_stack, sizeof(sweep_worker_stack));
   emscripten_wasm_worker_post_function_v(worker, sweep_worker_main);
 }
