@@ -190,6 +190,12 @@ static void finish_multithreaded_marking()
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
 
+static uint8_t cas_u8(_Atomic(uint8_t) *addr, uint8_t prev, uint8_t new)
+{
+  __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+  return prev;
+}
+
 static void mark(void *ptr, size_t bytes)
 {
   uint32_t i;
@@ -198,19 +204,12 @@ static void mark(void *ptr, size_t bytes)
   {
     if ((i = find_index(*p)) == INVALID_INDEX) continue;
     uint8_t bit = ((uint8_t)1 << (i&7));
-    _Atomic(uint8_t) *mark_addr = (_Atomic(uint8_t)*)mark_table + (i>>3);
-
+    _Atomic(uint8_t) *marks = (_Atomic(uint8_t)*)mark_table + (i>>3);
+    uint8_t old = *marks;
 again:
-    uint8_t old_val = __c11_atomic_load(mark_addr, __ATOMIC_SEQ_CST);
-    if ((old_val & bit)) continue;
-    uint8_t new_val = old_val | bit;
-    uint8_t expected = old_val;
-    __c11_atomic_compare_exchange_strong(mark_addr, &old_val, new_val, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-    if (old_val != expected)
-    {
-      if ((old_val & bit)) continue; // Another thread beat us to it, we can skip over this item
-      goto again; // Some other bit in this byte got flipped, retry.
-    }
+    if ((old & bit)) continue; // This pointer is already marked? Then can skip it.
+    uint8_t actual = cas_u8(marks, old, old | bit);
+    if (old != actual) { old = actual; goto again; } // Some other bit in this byte got flipped by another thread, retry marking this.
 
     if (HAS_FINALIZER_BIT(table[i])) ++num_finalizers_marked;
     if (!HAS_LEAF_BIT(table[i]))
