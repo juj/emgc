@@ -30,11 +30,6 @@ void collect_periodically(void *unused)
   emscripten_set_timeout(collect_periodically, 100, 0);
 }
 
-void notify_worker_started()
-{
-  collect_periodically(0);
-}
-
 void notify_worker_quit()
 {
   emscripten_terminate_wasm_worker(worker);
@@ -42,10 +37,6 @@ void notify_worker_quit()
 
 void *work(void *user1, void *user2)
 {
-  EM_ASM({console.log(`Worker thread: work`)});
-
-  emscripten_wasm_worker_post_function_v(0, notify_worker_started);
-
   int ***gc_mem = 0, ***gc_mem_prev = 0;
   while(!__c11_atomic_load(&worker_quit, __ATOMIC_SEQ_CST))
   {
@@ -74,4 +65,5 @@ int main()
 {
   worker = emscripten_malloc_wasm_worker(1024);
   emscripten_wasm_worker_post_function_v(worker, worker_main);
+  collect_periodically(0);
 }
