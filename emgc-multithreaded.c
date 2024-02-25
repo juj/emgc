@@ -9,6 +9,8 @@ static volatile uint8_t mt_lock = 0;
 // Test code to ensure we have tight malloc acquire/release guards in place.
 #define ASSERT_GC_MALLOC_IS_ACQUIRED() assert(mt_lock == 1)
 #define GC_CHECKPOINT_KEEPALIVE EMSCRIPTEN_KEEPALIVE __attribute__((noinline))
+static uint8_t  cas_u8( _Atomic(uint8_t) *addr,  uint8_t prev,  uint8_t new)  { __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return prev; }
+static uint32_t cas_u32(_Atomic(uint32_t) *addr, uint32_t prev, uint32_t new) { __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return prev; }
 #else
 // In singlethreaded builds, no need for locking.
 #define GC_MALLOC_ACQUIRE() ((void)0)
@@ -147,13 +149,12 @@ static void mark_from_queue()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   for(;;)
   {
+    uint32_t tail = consumer_tail;
 tail_again:
-    uint32_t tail = __c11_atomic_load(&consumer_tail, __ATOMIC_SEQ_CST);
     if (tail < consumer_head)
     {
-      uint32_t old_tail = tail;
-      __c11_atomic_compare_exchange_strong(&consumer_tail, &old_tail, tail+1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-      if (old_tail != tail) goto tail_again;
+      uint32_t actual = cas_u32(&consumer_tail, tail, tail+1);
+      if (actual != tail) { tail = actual; goto tail_again; }
     }
     else
     {
@@ -189,18 +190,6 @@ static void finish_multithreaded_marking()
 }
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
-
-static uint8_t cas_u8(_Atomic(uint8_t) *addr, uint8_t prev, uint8_t new)
-{
-  __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-  return prev;
-}
-
-static uint32_t cas_u32(_Atomic(uint32_t) *addr, uint32_t prev, uint32_t new)
-{
-  __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-  return prev;
-}
 
 static void mark(void *ptr, size_t bytes)
 {
