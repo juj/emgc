@@ -1,4 +1,5 @@
-// Tests multithreaded GC allocation in one thread, and collection on another.
+// Stress tests multithreaded GC allocations in several threads, while the
+// main thread periodically collects.
 // flags: -sSPILL_POINTERS -sCOOPERATIVE_GC -sWASM_WORKERS -g2
 // run: browser
 #include "test.h"
