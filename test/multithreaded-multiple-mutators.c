@@ -68,7 +68,7 @@ int main()
 {
   for(int i = 0; i < NT; ++i)
   {
-    worker[i] = emscripten_malloc_wasm_worker(1024);
+    worker[i] = emscripten_malloc_wasm_worker(64*1024);
     emscripten_wasm_worker_post_function_v(worker[i], worker_main);
   }
   collect_periodically(0);
