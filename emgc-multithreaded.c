@@ -193,7 +193,8 @@ static void mark(void *ptr, size_t bytes)
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
   {
-    if ((i = find_index(*p)) == INVALID_INDEX) continue;
+    void *sp = *p;
+    if ((i = find_index(sp)) == INVALID_INDEX) continue;
     uint8_t bit = ((uint8_t)1 << (i&7));
     _Atomic(uint8_t) *marks = (_Atomic(uint8_t)*)mark_table + (i>>3);
     uint8_t old = *marks;
@@ -207,12 +208,12 @@ again_bit:
     {
       uint32_t head = producer_head;
 again_head:
-      if (head >= producer_tail + MARK_QUEUE_MASK) mark(*p, malloc_usable_size(*p)); // The shared work queue is full, so mark unshared recursively on local stack
+      if (head >= producer_tail + MARK_QUEUE_MASK) mark(sp, malloc_usable_size(sp)); // The shared work queue is full, so mark unshared recursively on local stack
       else
       {
         uint32_t actual = cas_u32(&producer_head, head, head+1);
         if (actual != head) { head = actual; goto again_head; }
-        mark_queue[head & MARK_QUEUE_MASK] = *p;
+        mark_queue[head & MARK_QUEUE_MASK] = sp;
         while(cas_u32(&consumer_head, head, head+1) != head) ; // nop
       }
     }
