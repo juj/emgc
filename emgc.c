@@ -54,7 +54,7 @@ static uint32_t find_insert_index(void *ptr)
 
 static uint32_t find_index(void *ptr)
 {
-  if (!IS_ALIGNED(ptr, 8) || (uintptr_t)ptr - (uintptr_t)&__heap_base >= (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base ) return INVALID_INDEX;
+  if (!IS_ALIGNED(ptr, 8) || (uintptr_t)ptr - (uintptr_t)&__heap_base >= (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base) return INVALID_INDEX;
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
     if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
   return INVALID_INDEX;

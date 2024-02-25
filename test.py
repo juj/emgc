@@ -11,7 +11,7 @@ for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
 
 # Uncomment for quick testing in one mode.
 #modes = [['-O3', '-g2', '-DNDEBUG', '-mbulk-memory', '-sMALLOC=emmalloc', '-flto', '-msimd128']]
-modes = [['-O0', '-g2']]
+modes = [['-O3', '-g2']]
 
 tests = glob.glob('test/*.c')
 if len(sys.argv) > 1:
