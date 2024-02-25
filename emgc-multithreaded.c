@@ -219,7 +219,7 @@ again_head:
 }
 
 static char sweep_worker_stack[256];
-static emscripten_wasm_worker_t worker;
+static emscripten_wasm_worker_t sweep_worker;
 
 static void sweep_worker_main()
 {
@@ -236,8 +236,8 @@ static void sweep_worker_main()
 __attribute__((constructor(40))) static void initialize_multithreaded_gc()
 {
   mark_queue = (void**) malloc((MARK_QUEUE_MASK+1)*sizeof(void*));
-  worker = emscripten_create_wasm_worker(sweep_worker_stack, sizeof(sweep_worker_stack));
-  emscripten_wasm_worker_post_function_v(worker, sweep_worker_main);
+  sweep_worker = emscripten_create_wasm_worker(sweep_worker_stack, sizeof(sweep_worker_stack));
+  emscripten_wasm_worker_post_function_v(sweep_worker, sweep_worker_main);
 }
 
 #endif
