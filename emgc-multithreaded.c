@@ -128,6 +128,7 @@ static void start_multithreaded_collection()
 
 static void wait_for_all_threads_finished_marking()
 {
+  ++num_threads_finished_marking;
   while(mt_marking_running && num_threads_finished_marking < num_threads_ready_to_start_marking) gc_uninterrupted_sleep(1);
   ++num_threads_resumed_execution;
 }
@@ -158,7 +159,6 @@ tail_again:
     }
     else
     {
-      ++num_threads_finished_marking;
       wait_for_all_threads_finished_marking();
       return;
     }
