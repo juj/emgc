@@ -44,9 +44,6 @@ void *work(void *user1, void *user2)
 {
   EM_ASM({console.log(`Worker thread: work`)});
 
-  char *data = gc_malloc(4);
-  PIN(&data);
-
   emscripten_wasm_worker_post_function_v(0, notify_worker_started);
 
   int ***gc_mem = 0, ***gc_mem_prev = 0;
@@ -64,8 +61,6 @@ void *work(void *user1, void *user2)
     *gc_mem = (int **)gc_malloc(4);
     **gc_mem = (int *)gc_malloc(4);
   }
-
-  EM_ASM({console.log(`Worker thread: finished`)});
   emscripten_wasm_worker_post_function_v(0, notify_worker_quit);
   return 0;
 }
