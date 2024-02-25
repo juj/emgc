@@ -74,22 +74,18 @@ void GC_CHECKPOINT_KEEPALIVE gc_participate_to_garbage_collection()
 
 static void gc_enter_fence()
 {
-  // If there is a current GC collection going, help out the GC collection before
-  // we enter managed state. Need to track two cases: if we have a previous nested
-  // call to gc_enter_fence_cb() from before, do full participation (that
-  // scans this stack). Otherwise we simply assist in marking (without scanning
-  // this thread's stack).
-  if (this_thread_accessing_managed_state++) gc_participate_to_garbage_collection();
-  else
+  if (!this_thread_accessing_managed_state++)
   {
     // Record where the stack is currently at. Any functions before this cannot
-    // contain GC pointers, so this is an easy micro-optimization to local stack
-    // scanning.
+    // contain GC pointers, so this is an easy micro-optimization to shrink
+    // the amount of local stack scanning.
     stack_top = emscripten_stack_get_current();
     ++num_threads_accessing_managed_state;
   }
 
-  if (mt_marking_running) mark_from_queue();
+  // If there is a current GC collection going, help out the GC collection as
+  // the first thing we do, or otherwise we cannot safely access any GC objects.
+  gc_participate_to_garbage_collection();
 }
 
 static void gc_exit_fence()
