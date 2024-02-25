@@ -136,9 +136,8 @@ static void wait_for_all_threads_finished_marking()
 static void gc_acquire_lock(emscripten_lock_t *lock)
 {
   emscripten_lock_t val;
-  do {
-    val = emscripten_atomic_cas_u32((void*)lock, 0, 1);
-  } while(val);
+  do val = emscripten_atomic_cas_u32((void*)lock, 0, 1);
+  while(val);
 }
 
 static void gc_release_lock(emscripten_lock_t *lock)
