@@ -165,6 +165,7 @@ static void mark_from_queue()
 }
 
 static emscripten_semaphore_t sweep_command = EMSCRIPTEN_SEMAPHORE_T_STATIC_INITIALIZER(0);
+static _Atomic(int) sweep_worker_running, sweep_worker_should_quit;
 
 static void finish_multithreaded_marking()
 {
@@ -173,8 +174,13 @@ static void finish_multithreaded_marking()
   mt_marking_running = 0;
   gc_exit_fence();
 
-  // Instruct the sweep worker to start sweeping.
-  emscripten_semaphore_release(&sweep_command, 1);
+  // Instruct the sweep worker (if it exists) to start sweeping. If it doesn't,
+  // we perform the sweeping here locally. This logic is needed even if we
+  // always use the sweep worker, because in stress test harness the sweep
+  // worker may take time to start up, and at start of gc_collect() we must
+  // synchronously spinlock to ensure that the previous sweep job has finished.
+  if (sweep_worker_running) emscripten_semaphore_release(&sweep_command, 1);
+  else sweep();
 #endif
 }
 
@@ -213,19 +219,19 @@ static void mark(void *ptr, size_t bytes)
     }
 }
 
-static _Atomic(int) worker_quit;
 static char sweep_worker_stack[256];
 static emscripten_wasm_worker_t worker;
 
 static void sweep_worker_main()
 {
+  sweep_worker_running = 1;
   for(;;)
   {
     emscripten_semaphore_waitinf_acquire(&sweep_command, 1);
-    if (worker_quit) break;
+    if (sweep_worker_should_quit) break;
     sweep();
-    GC_MALLOC_RELEASE();
   }
+  sweep_worker_running = 0;
 }
 
 __attribute__((constructor(40))) static void initialize_sweep_worker()

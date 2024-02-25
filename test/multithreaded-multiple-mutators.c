@@ -6,7 +6,7 @@
 #include <emscripten/eventloop.h>
 #include <emscripten/html5.h>
 
-#define NT 8
+#define NT 16
 emscripten_wasm_worker_t worker[NT];
 
 _Atomic(int) worker_quit;

@@ -154,6 +154,8 @@ static void mark(void *ptr, size_t bytes)
 
 static void sweep()
 {
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
+
   // If we didn't mark all finalizers, we know we will have GC object with
   // finalizer to sweep. If so, find a finalizer to run.
   if (num_finalizers_marked < num_finalizers) find_and_run_a_finalizer();
@@ -168,6 +170,8 @@ static void sweep()
   // (which helps avoid a tricky double synchronization at start_multithreaded_collection())
   if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
   else memset(mark_table, 0, (table_mask+1)>>3);
+
+  GC_MALLOC_RELEASE();
 }
 
 static void mark_current_thread_stack()
