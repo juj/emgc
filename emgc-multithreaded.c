@@ -97,11 +97,8 @@ static void gc_exit_fence()
 void *js_try_finally(gc_mutator_func func, void *user1, void *user2, void (*finally_func)(void));
 
 void *gc_enter_fence_cb(gc_mutator_func mutator, void *user1, void *user2)
-{
-  gc_enter_fence();
-
-  // Call the mutator callback function in a fashion that safely clears the
-  // fence state in case a JavaScript exception is thrown inside the call stack.
+{                    // Mark that we've entered the fence, and then call the mutator callback in a fashion that safely
+  gc_enter_fence();  // clears the fence state in case a JavaScript exception is thrown inside the call stack.
   return js_try_finally(mutator, user1, user2, gc_exit_fence);
 }
 
