@@ -1,7 +1,8 @@
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
 static void mark_maybe_ptr(void *ptr)
 {
-  if ((i = table_find(ptr)) == INVALID_INDEX) return;
+  uint32_t i = table_find(ptr);
+  if (i == INVALID_INDEX) return;
   uint8_t bit = ((uint8_t)1 << (i&7));
   _Atomic(uint8_t) *marks = (_Atomic(uint8_t)*)mark_table + (i>>3);
   uint8_t old = *marks;
