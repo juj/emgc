@@ -391,16 +391,16 @@ But, when a GC marking is about to start, what if one of the managed threads was
 
 So in order to keep the system responsive, all futexes/sleeps in managed threads should be sliced up into very small wait quantums at a time, so that those threads may perform the GC sync check in between.
 
-For example, instead of performing a futex wait for 10 seconds, the code should be changed to, for example, wait in 10 millisecond, 1 millisecond or 0.1 millisecond slices, and check for the need to GC in between.
+For example, instead of performing a futex wait for 10 seconds, the code should be changed to, maybe wait in 10 millisecond, 1 millisecond or 0.1 millisecond slices, and check for the need to GC in between.
 
-This might initially read like a simple solution to a problem, but in fact there is a can of worms in wait here.
+This might initially read like a simple solution to a problem, but it seems there is a can of worms in wait here.
 
-The first problem is that coming up with a proper wait slice is far from obvious. For a text editor application, a long 10 millisecond wait quantum might not be a problem at all, if GC pauses occur relatively infrequently. However for a real-time interactive game, 10 milliseconds might mean 60% of the game's computation budget to compute a single frame, so the sleep time such be smaller. In game development, developers may chase over 1 millisecond optimization wins, so even a 1 millisecond latency to initiate a GC may be enough to cause observable GC stuttering.
+The first problem is that coming up with an optimal wait slice is not obvious. For a text editor application, a long 10 millisecond wait quantum might not be a problem at all, if GC pauses occur relatively infrequently. However for a real-time interactive game, 10 milliseconds might mean 60% of the game's computation budget to compute a single frame, so the sleep time should be much smaller. (In game development, developers may chase over 1 millisecond optimization wins, so even a millisecond lost to initiate a GC may be enough to cause observable GC stuttering)
 
-Then, an application might be attracted choose a short wait slice like 0.1 milliseconds and consider that a problem solved?
+Then, an application might be attracted to just choosing a short wait slice like 0.1 milliseconds and consider that a problem solved?
 
-Well, here then comes the unfortunate other side of the problem. In a large application there may exist a few dozen of background threads, all typically waiting dormant to perform some small dedicated task.
+Well, here then comes the other side of the problem. In a large application there may exist a few dozen of background threads, all typically waiting dormant most of their lifetime, to perform some small dedicated tasks.
 
-Under a sliced wait scheme that allows these threads to poll if GC participation would be needed, these threads would need to be continuously scheduled by the CPU to execute. This would continuously consume energy, and take throughput performance away from the actually executing threads in the program.
+Under a sliced wait scheme that lets these threads poll when GC participation would be needed, these threads will then need to be continuously scheduled by the CPU to execute. This would continuously consume energy, and take throughput performance away from the actually executing threads in the program. This is not expected to scale well especially on mobile devices.
 
 Currently Emgc does not tune its sleep quantum in any way, but at the time of writing has it set to [a ridiculously low value of 100 nsecs](https://github.com/juj/emgc/blob/df39cb6c4a60be87334073fd68e999177a118fd8/emgc-multithreaded.c#L53). This may change after more experience from real-world application benchmarking is gained.
