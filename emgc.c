@@ -63,7 +63,7 @@ static void realloc_table()
 {
   uint32_t old_mask = table_mask;
   if (2*num_allocs >= table_mask) table_mask = table_mask ? ((table_mask << 1) | 1) : 63;
-  else while(table_mask >= 8*num_allocs && table_mask >= 127) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
+  else while(table_mask >= ((8*num_allocs) | 127)) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
   if (old_mask != table_mask) mark_table = (uint8_t*)realloc_zeroed(mark_table, (table_mask+1)>>3);
 
@@ -160,7 +160,7 @@ static void sweep()
   // Or if the size doesn't change, then since we still hold the gc_malloc lock, this
   // is a good moment to clear the mark table back to zero for the next allocation
   // (which helps avoid a tricky double synchronization at start_multithreaded_collection())
-  if (table_mask >= 8*num_allocs && table_mask >= 127) realloc_table();
+  if (table_mask >= ((8*num_allocs) | 127)) realloc_table();
   else memset(mark_table, 0, (table_mask+1)>>3);
 
   GC_MALLOC_RELEASE();
