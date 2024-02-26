@@ -141,24 +141,6 @@ static void gc_release_lock(emscripten_lock_t *lock)
   emscripten_atomic_store_u32((void*)lock, 0);
 }
 
-static void mark_from_queue()
-{
-#ifdef __EMSCRIPTEN_SHARED_MEMORY__
-  for(;;)
-  {
-    uint32_t tail = queue_tail;
-again:
-    if (tail >= consumer_head) break;
-    void *ptr = mark_queue[tail & MARK_QUEUE_MASK];
-    uint32_t actual = cas_u32(&queue_tail, tail, tail+1);
-    if (actual != tail) { tail = actual; goto again; }
-
-    mark(ptr, malloc_usable_size(ptr));
-  }
-  wait_for_all_threads_finished_marking();
-#endif
-}
-
 static emscripten_semaphore_t sweep_command = EMSCRIPTEN_SEMAPHORE_T_STATIC_INITIALIZER(0);
 static _Atomic(int) sweep_worker_running, sweep_worker_should_quit;
 

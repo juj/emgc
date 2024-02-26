@@ -1,4 +1,20 @@
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
+static void mark_from_queue()
+{
+  for(;;)
+  {
+    uint32_t tail = queue_tail;
+again:
+    if (tail >= consumer_head) break;
+    void *ptr = mark_queue[tail & MARK_QUEUE_MASK];
+    uint32_t actual = cas_u32(&queue_tail, tail, tail+1);
+    if (actual != tail) { tail = actual; goto again; }
+
+    mark(ptr, malloc_usable_size(ptr));
+  }
+  wait_for_all_threads_finished_marking();
+}
+
 static void mark_maybe_ptr(void *ptr)
 {
   uint32_t i = table_find(ptr);
