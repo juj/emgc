@@ -14,7 +14,6 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
      - [🍃 Leaves](#-leaves)
    - [📌 Weak Pointers](#-weak-pointers)
    - [📚 Stack Scanning](#-stack-scanning)
-     - [𝕏² Quadratic Memory Usage](#𝕏-quadratic-memory-usage)
    - [🪦 Finalizer Support](#-finalizer-support)
    - [🔢 WebAssembly SIMD](#-webassembly-simd)
    - [🧶 Multithreaded Garbage Collection](#-multithreaded-garbage-collection)
