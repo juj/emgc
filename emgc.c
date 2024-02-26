@@ -59,6 +59,15 @@ static void table_insert(void *ptr)
   BITVEC_SET(used_table, i);
 }
 
+static void table_free(uint32_t i)
+{
+  assert(table[i] > SENTINEL_PTR);
+  free(REMOVE_FLAG_BITS(table[i]));
+  table[i] = SENTINEL_PTR;
+  BITVEC_CLEAR(used_table, i);
+  --num_allocs;
+}
+
 static void realloc_table()
 {
   uint32_t old_mask = table_mask;
@@ -100,15 +109,6 @@ void *gc_malloc(size_t bytes)
   return ptr;
 }
 
-static void free_at_index(uint32_t i)
-{
-  assert(table[i] > SENTINEL_PTR);
-  free(REMOVE_FLAG_BITS(table[i]));
-  table[i] = SENTINEL_PTR;
-  BITVEC_CLEAR(used_table, i);
-  --num_allocs;  
-}
-
 void gc_free(void *ptr)
 {
   if (!ptr) return;
@@ -116,7 +116,7 @@ void gc_free(void *ptr)
   uint32_t i = table_find(ptr);
   if (i != INVALID_INDEX)
   {
-    free_at_index(i);
+    table_free(i);
     gc_unmake_root(ptr);
   }
   GC_MALLOC_RELEASE();
@@ -136,7 +136,7 @@ static void sweep()
   else // No finalizers to invoke, so perform a real sweep that frees up GC objects.
     for(uint32_t i = 0, offset; i <= table_mask; i += 64)
       for(uint64_t b = ((uint64_t*)used_table)[i>>6] & ~((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
-        free_at_index(i + (offset = __builtin_ctzll(b)));
+        table_free(i + (offset = __builtin_ctzll(b)));
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
   // Or if the size doesn't change, then since we still hold the gc_malloc lock, this
