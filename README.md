@@ -19,6 +19,12 @@ This is a toy project used to introspect Emscripten compiler behavior. Not for p
    - [🔢 WebAssembly SIMD](#-webassembly-simd)
    - [🧶 Multithreaded Garbage Collection](#-multithreaded-garbage-collection)
  - [🧪 Running Tests](#-running-tests)
+ - [☠️ Challenges with using a GC in WebAssembly](#-challenges-with-using-a-gc-in-webassembly)
+   - [📚 The Hidden Stack Problem](#-the-hidden-stack-problem)
+   - [𝕏² Quadratic Memory Usage](#-quadratic-memory-usage)
+   - [📣 Cooperative Signaling Problem](#-cooperative-signaling-problem)
+   - [🦌 Gathering-The-Herd Problem](#-gathering-the-herd-problem)
+   - [💤 Sleep Slicing Problem](#-sleep-slicing-problem)
 
 # ℹ Introduction
 
@@ -223,35 +229,7 @@ All these modes come with drawbacks:
 
 - The fenced --spill-pointers mode carries a potentially heavy overhead to the generated code size, as cooperative marking points will need to be emitted across all functions in the program.
 
-- In the collect-on-empty-stack mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha, see the next section on memory usage.
-
-#### 𝕏² Quadratic Memory Usage
-
-Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-on-empty-stack scanning mode. For example, the following code:
-
-```c
-char *linear_or_quadratic_memory_use()
-{
-  char *str = (char*)gc_malloc(1);
-  str[0] = '\0';
-  int len = 1;
-  for(int i = 0; i < 10000; ++i)
-  {
-    len += 3;
-    char *str2 = (char*)gc_malloc(len);
-    strcpy(str2, str);
-    strcat(str2, "foo");
-    str = str2;
-  }
-  return str;
-}
-```
-
-The above code generates a long string by concatenating `"foo"` 10000 times. If the heap is about to run out of memory, `gc_malloc()` can collect garbage on demand if running in the `--spill-pointers` mode. This means that the above code will first consume some amount of temporary memory (as the available heap size permits), which will be promptly collected, and then finally the code persists `10000 * strlen("foo")+1` == `30001 bytes` of memory for the string at the end of the function.
-
-If Emgc is operating in only-collect-when-stack-is-empty mode, the above code will temporarily require `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
-
-The recommendation here is hence to be extremely cautious of containers and strings when building without `--spill-pointers`. It is advisable to perform std::vector style **geometric capacity growths** of memory for containers and strings when compiling under this mode to mitigate the quadratic memory growth issue.
+- In the collect-on-empty-stack mode, the application will be unable to resolve any OOM situations by collecting on the spot inside a `gc_malloc()` call. If the application developer knows they will not perform too many temp allocations, this might not sound too bad; but there is a grave gotcha that can cause certain algorithms that use Θ(n) of memory to consume Θ(n²) of memory instead. See the section [𝕏² Quadratic Memory Usage](#𝕏-quadratic-memory-usage) at the end for more details.
 
 ### 🪦 Finalizer Support
 
@@ -335,3 +313,95 @@ N.b. if you are building C++ code with C++ exceptions enabled, you should manual
 # 🧪 Running Tests
 
 Execute `python test.py` to run the test suite.
+
+# ☠️ Challenges with using a GC in WebAssembly
+
+Implementing a garbage collector in WebAssembly is currently not seamless, but comes with some limitations.
+
+This section details some design problems that have been observed while implementing a GC for use inside Wasm.
+
+## 📚 The Hidden Stack Problem
+
+In WebAssembly, the program callstack is not introspectable by user code. This prevents a garbage collector from finding pointers on the stack. For more details, check the previous [Stack Scanning](#stack-scanning) section above.
+
+There is a proposed solution to this issue in [WebAssembly/design#1459](https://github.com/WebAssembly/design/issues/1459)
+
+## 𝕏² Quadratic Memory Usage
+
+Any code that performs a linear number of linearly growing temporary calls to `gc_malloc()`, will turn into a quadratic memory usage under the collect-on-empty-stack scanning mode. For example, see the following code:
+
+```c
+char *linear_or_quadratic_memory_use()
+{
+  char *str = (char*)gc_malloc(1);
+  str[0] = '\0';
+  int len = 1;
+  for(int i = 0; i < 10000; ++i)
+  {
+    len += 3;
+    char *str2 = (char*)gc_malloc(len);
+    strcpy(str2, str);
+    strcat(str2, "foo");
+    str = str2;
+  }
+  return str;
+}
+```
+
+The above code generates a long string by concatenating `"foo"` 10000 times. If the heap is about to run out of memory, `gc_malloc()` can collect garbage on demand if running in the `--spill-pointers` mode. This means that the above code will first consume some amount of temporary memory (as the available heap size permits), which will be promptly collected, and then finally the code persists `10000 * strlen("foo")+1` == `30001 bytes` of memory for the string at the end of the function.
+
+If Emgc is operating in only-collect-when-stack-is-empty mode, the above code will temporarily require `1 + 4 + 7 + 10 + ... + 30001` = `150,025,000 bytes` of free memory on the Wasm heap!
+
+The recommendation here is hence to be extremely cautious of containers and strings when building without `--spill-pointers`. It is advisable to perform std::vector style **geometric capacity growths** of memory for containers and strings when compiling under this mode to mitigate the quadratic memory growth issue.
+
+## 📣 Cooperative Signaling Problem
+
+In the browser WebAssembly relies on Web Workers to provide support for shared state multithreading.
+
+Traditionally in a stop-the-world garbage collector, all the threads that are accessing GC state are paused by sending them a [pre-emptive signal](https://man7.org/linux/man-pages/man2/signal.2.html) or by [instructing the OS to suspend the thread](https://www.ibm.com/docs/en/aix/7.2?topic=p-pthread-suspend-np-pthread-unsuspend-np-pthread-continue-np-subroutine) and not schedule it until it has been resumed. This method can be used to cause the threads to pause whatever they are doing, and/or jump to executing a custom signal handler function. This mechanism works well in native code for forcing all GC threads to synchronize for the marking process to start.
+
+On the web however, such mechanisms are not available. To work around this limitation, Emgc employs **cooperative signaling**. In cooperative signaling, the compiler emits check points to all generated code to make sure that each thread will continuously check in whether it is time for the thread to pause for garbage collection.
+
+In the context of Emgc, this cooperative GC checkpoint emitting is done in the [--instrument-cooperative-gc pass in Binaryen](https://github.com/juj/binaryen/blob/spill_pointers_fixes/src/passes/InstrumentCooperativeGC.cpp). This pass must be enabled whenever using Emgc in a mode where there may exist multiple mutator threads.
+
+There are two immediate downsides to this strategy:
+
+1. First one is that this kind of instrumentation will bloat up the disk size of the generated .wasm file. Each loop in the whole program will acquire a call to this GC checkpoint, and there are a lot of loops in any typical program.
+
+2. The second downside is that this kind of constant checking will reduce runtime performance. Small loops such as `memcpy()`, `memset()` and `strcpy()` may need custom blacklisting to exclude them from resulting in pathologically poor performance.
+
+There are two further issues in this strategy, illustrated in more detail in the following two sections.
+
+## 🦌 Gathering-The-Herd Problem
+
+A major issue caused by cooperative GC signaling under a stop-the-world scheme is that garbage collection cannot start until all threads have been successfully paused. That is, each managed thread must stop mutating the object graph before GC marking can begin.
+
+Under a pre-emptive scheme this type of operation is generally not too bad, since thread pre-emption is specifically managed by the operating system. If the thread was a background thread that was already sleeping to wait for a mutex, then marking it as suspended is very cheap.
+
+Under cooperative signaling however, it is unclear how long it will take until each of the worker threads continue their execution to reach next cooperative GC check point. If such GC check points have been excessively emitted at e.g. all function prologues and loop back-edges (like is typical), this process might not be too bad. Although there is pressure to omit such checkpoints e.g. at certain function prologues, or in very short non-atomic loops (`memcpy()`, `memset()`, ...), since their presence have adverse effects on disk size and runtime speed.
+
+Further, the more managed threads there are, the longer the other threads will take to wait for all of those threads to "gather up" together to the GC mark sync point. Many large applications have more threads than there are logical cores (oversubscription), so many of those threads may need to be woken up and be scheduled to the CPU first, just to immediately reach the common GC sync point where they will put to sleep again.
+
+So in effect, this ***"gathering the herd" procedure may become slow, and slower as the number of managed threads grow***.
+
+## 💤 Sleep Slicing Problem
+
+In the previous sections, it was explained how all the managed threads need to be synchronized together in a common GC point in order to start the GC marking process.
+
+But, when a GC marking is about to start, what if one of the managed threads was waiting for a futex or sleeping? Then, since there is no pre-emptive signaling support on the web, the GC marking process cannot start until this futex/sleep operation finishes.
+
+So in order to keep the system responsive, all futexes/sleeps in managed threads should be sliced up into very small wait quantums at a time, so that those threads may perform the GC sync check in between.
+
+For example, instead of performing a futex wait for 10 seconds, the code should be changed to, for example, wait in 10 millisecond, 1 millisecond or 0.1 millisecond slices, and check for the need to GC in between.
+
+This might initially read like a simple solution to a problem, but in fact there is a can of worms in wait here.
+
+The first problem is that coming up with a proper wait slice is far from obvious. For a text editor application, a long 10 millisecond wait quantum might not be a problem at all, if GC pauses occur relatively infrequently. However for a real-time interactive game, 10 milliseconds might mean 60% of the game's computation budget to compute a single frame, so the sleep time such be smaller. In game development, developers may chase over 1 millisecond optimization wins, so even a 1 millisecond latency to initiate a GC may be enough to cause observable GC stuttering.
+
+Then, an application might be attracted choose a short wait slice like 0.1 milliseconds and consider that a problem solved?
+
+Well, here then comes the unfortunate other side of the problem. In a large application there may exist a few dozen of background threads, all typically waiting dormant to perform some small dedicated task.
+
+Under a sliced wait scheme that allows these threads to poll if GC participation would be needed, these threads would need to be continuously scheduled by the CPU to execute. This would continuously consume energy, and take throughput performance away from the actually executing threads in the program.
+
+Currently Emgc does not tune its sleep quantum in any way, but at the time of writing has it set to [a ridiculously low value of 100 nsecs](https://github.com/juj/emgc/blob/df39cb6c4a60be87334073fd68e999177a118fd8/emgc-multithreaded.c#L53). This may change after more experience from real-world application benchmarking is gained.
