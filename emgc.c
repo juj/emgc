@@ -41,17 +41,6 @@ static uint32_t num_allocs, num_table_entries, table_mask;
 
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
 
-static uint32_t find_insert_index(void *ptr)
-{
-  uint32_t i = hash_ptr(ptr);
-  uint32_t i64 = i>>6;
-  uint64_t *used64 = (uint64_t*)used_table;
-  uint64_t u = used64[i64] | ((1ull<<(i&63))-1); // Mask off all indices that come before the initial hash index
-  while(u == (uint64_t)-1)
-    u = used64[(i64 = (i64+1) & (table_mask >> 6))];
-  return (i64<<6) + __builtin_ctzll(~u);
-}
-
 static uint32_t find_index(void *ptr)
 {
   if (!IS_ALIGNED(ptr, 8) || (uintptr_t)ptr - (uintptr_t)&__heap_base >= (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base) return INVALID_INDEX;
@@ -62,7 +51,13 @@ static uint32_t find_index(void *ptr)
 
 static void table_insert(void *ptr)
 {
-  uint32_t i = find_insert_index(ptr);
+  uint32_t i = hash_ptr(ptr);
+  uint32_t i64 = i>>6;
+  uint64_t *used64 = (uint64_t*)used_table;
+  uint64_t u = used64[i64] | ((1ull<<(i&63))-1); // Mask off all indices that come before the initial hash index
+  while(u == (uint64_t)-1)
+    u = used64[(i64 = (i64+1) & (table_mask >> 6))];
+  i = (i64<<6) + __builtin_ctzll(~u);
   table[i] = ptr;
   BITVEC_SET(used_table, i);
 }
