@@ -17,15 +17,15 @@ static void mark(void *ptr, size_t bytes)
 
     for(uint32_t bits = wasm_i32x4_bitmask(cmp), offset; bits; bits ^= 1 << offset)
     {
-      void *ptr = p[(offset = __builtin_ctz(bits))];
-      for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
-        if (REMOVE_FLAG_BITS(table[i]) == ptr)
+      void *pp = p[(offset = __builtin_ctz(bits))];
+      for(uint32_t i = hash_ptr(pp); table[i]; i = (i+1) & table_mask)
+        if (REMOVE_FLAG_BITS(table[i]) == pp)
         {
           if (!BITVEC_GET(mark_table, i))
           {
             BITVEC_SET(mark_table, i);
             num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
-            if (!HAS_LEAF_BIT(table[i])) mark(ptr, malloc_usable_size(ptr));
+            if (!HAS_LEAF_BIT(table[i])) mark(pp, malloc_usable_size(pp));
           }
           break;
         }
