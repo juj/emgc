@@ -40,9 +40,9 @@ static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & t
 
 static uint32_t table_find(void *ptr)
 {
-  if (!IS_ALIGNED(ptr, 8) || (uintptr_t)ptr - (uintptr_t)&__heap_base >= (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base) return INVALID_INDEX;
-  for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
-    if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
+  if (IS_ALIGNED(ptr, 8) && (uintptr_t)ptr - (uintptr_t)&__heap_base < (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base)
+    for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
+      if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
   return INVALID_INDEX;
 }
 
