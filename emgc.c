@@ -124,25 +124,7 @@ void gc_free(void *ptr)
 
 #include "emgc-weak.c"
 #include "emgc-roots.c"
-
-#ifndef __EMSCRIPTEN_SHARED_MEMORY__
-#ifdef __wasm_simd128__
-#include "emgc-simd.c"
-#else
-static void mark(void *ptr, size_t bytes)
-{
-  uint32_t i;
-  assert(IS_ALIGNED(ptr, sizeof(void*)));
-  for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = table_find(*p)) != INVALID_INDEX && !BITVEC_GET(mark_table, i))
-    {
-      BITVEC_SET(mark_table, i);
-      num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
-      if (!HAS_LEAF_BIT(table[i])) mark(*p, malloc_usable_size(*p));
-    }
-}
-#endif
-#endif
+#include "emgc-mark.c"
 
 static void sweep()
 {
