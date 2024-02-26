@@ -1,5 +1,3 @@
-static uint32_t find_index(void *ptr);
-
 typedef struct finalizer_map
 {
   void *ptr;
@@ -79,6 +77,6 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
   }
   insert_finalizer(ptr, finalizer);
 
-  uint32_t i = find_index(ptr);
+  uint32_t i = table_find(ptr);
   table[i] = (void*)((uintptr_t)table[i] | PTR_FINALIZER_BIT);
 }

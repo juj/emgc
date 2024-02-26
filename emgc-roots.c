@@ -55,14 +55,14 @@ void *gc_malloc_root(size_t bytes)
 
 void gc_make_leaf(void *ptr)
 {
-  uint32_t i = find_index(ptr);
+  uint32_t i = table_find(ptr);
   if (i == INVALID_INDEX) return;
   table[i] = (void*)((uintptr_t)table[i] | PTR_LEAF_BIT);
 }
 
 void gc_unmake_leaf(void *ptr)
 {
-  uint32_t i = find_index(ptr);
+  uint32_t i = table_find(ptr);
   if (i == INVALID_INDEX) return;
   table[i] = (void*)((uintptr_t)table[i] & ~PTR_LEAF_BIT);
 }

@@ -29,7 +29,6 @@ static void sweep();
 static void mark_from_queue();
 static void mark_current_thread_stack();
 static void mark(void *ptr, size_t bytes);
-static uint32_t find_index(void *ptr);
 
 static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking, num_threads_finished_marking, num_threads_resumed_execution;
 static __thread int this_thread_accessing_managed_state;
@@ -192,7 +191,7 @@ static void mark(void *ptr, size_t bytes)
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
   {
     void *sp = *p;
-    if ((i = find_index(sp)) == INVALID_INDEX) continue;
+    if ((i = table_find(sp)) == INVALID_INDEX) continue;
     uint8_t bit = ((uint8_t)1 << (i&7));
     _Atomic(uint8_t) *marks = (_Atomic(uint8_t)*)mark_table + (i>>3);
     uint8_t old = *marks;

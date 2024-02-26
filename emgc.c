@@ -36,12 +36,9 @@ static void **table;
 static uint8_t *mark_table, *used_table;
 static uint32_t num_allocs, num_table_entries, table_mask;
 
-#include "emgc-finalizer.c"
-#include "emgc-multithreaded.c"
-
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
 
-static uint32_t find_index(void *ptr)
+static uint32_t table_find(void *ptr)
 {
   if (!IS_ALIGNED(ptr, 8) || (uintptr_t)ptr - (uintptr_t)&__heap_base >= (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base) return INVALID_INDEX;
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
@@ -89,6 +86,9 @@ static void realloc_table()
   num_table_entries = num_allocs; // The hash table is tight again now with no dirty entries.
 }
 
+#include "emgc-finalizer.c"
+#include "emgc-multithreaded.c"
+
 void *gc_malloc(size_t bytes)
 {
   ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
@@ -116,7 +116,7 @@ void gc_free(void *ptr)
 {
   if (!ptr) return;
   GC_MALLOC_ACQUIRE();
-  uint32_t i = find_index(ptr);
+  uint32_t i = table_find(ptr);
   if (i != INVALID_INDEX)
   {
     free_at_index(i);
@@ -137,7 +137,7 @@ static void mark(void *ptr, size_t bytes)
   uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
-    if ((i = find_index(*p)) != INVALID_INDEX && !BITVEC_GET(mark_table, i))
+    if ((i = table_find(*p)) != INVALID_INDEX && !BITVEC_GET(mark_table, i))
     {
       BITVEC_SET(mark_table, i);
       num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
@@ -220,7 +220,7 @@ void gc_collect_when_stack_is_empty()
 int gc_is_ptr(void *ptr)
 {
   GC_MALLOC_ACQUIRE();
-  uint32_t i = find_index(ptr);
+  uint32_t i = table_find(ptr);
   GC_MALLOC_RELEASE();
   return i != INVALID_INDEX;
 }
