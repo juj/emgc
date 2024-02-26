@@ -2,9 +2,7 @@
 
 static void mark(void *ptr, size_t bytes)
 {
-//  EM_ASM({console.log(`Marking ptr range ${$0.toString(16)} - ${$1.toString(16)} (${$2} bytes)...`)}, ptr, (char*)ptr + bytes, bytes);
   assert(IS_ALIGNED(ptr, sizeof(void*)));
-  assert(IS_ALIGNED((uintptr_t)ptr + bytes, sizeof(void*)));
 
   const v128_t mem_start = wasm_u32x4_splat((uintptr_t)&__heap_base);
   const v128_t mem_end = wasm_u32x4_splat((uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base);
@@ -25,7 +23,6 @@ static void mark(void *ptr, size_t bytes)
         {
           if (!BITVEC_GET(mark_table, i))
           {
-//            EM_ASM({console.log(`Marked ptr ${$0.toString(16)} at index ${$1} from memory address ${$2.toString(16)}.`)}, ptr, i, p+offset);
             BITVEC_SET(mark_table, i);
             num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
             if (!HAS_LEAF_BIT(table[i])) mark(ptr, malloc_usable_size(ptr));
