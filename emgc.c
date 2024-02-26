@@ -186,15 +186,8 @@ void gc_collect()
 #endif
 }
 
-static void collect_when_stack_is_empty(void *unused)
-{
-  gc_collect(); // We know 100% we won't have any managed pointers on the stack frame now.
-}
-
-void gc_collect_when_stack_is_empty()
-{
-  emscripten_set_timeout(collect_when_stack_is_empty, 0, 0);
-}
+static void collect_when_stack_is_empty(void *unused) { gc_collect(); } // We know 100% we won't have any managed pointers on the stack frame now.
+void gc_collect_when_stack_is_empty() { emscripten_set_timeout(collect_when_stack_is_empty, 0, 0); }
 
 int gc_is_ptr(void *ptr)
 {
