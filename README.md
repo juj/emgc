@@ -321,7 +321,7 @@ This section details some design problems that have been observed while implemen
 
 ## 📚 The Hidden Stack Problem
 
-In WebAssembly, the program callstack is not introspectable by user code. This prevents a garbage collector from finding pointers on the stack. For more details, check the previous [Stack Scanning](#stack-scanning) section above.
+In WebAssembly, the program callstack is not introspectable by user code. This prevents a garbage collector from finding pointers on the stack. For more details, check the previous [Stack Scanning](#-stack-scanning) section above.
 
 There is a proposed solution to this issue in [WebAssembly/design#1459](https://github.com/WebAssembly/design/issues/1459)
 
@@ -401,6 +401,6 @@ Then, an application might be attracted to just choosing a short wait slice like
 
 Well, here then comes the other side of the problem. In a large application there may exist a few dozen of background threads, all typically waiting dormant most of their lifetime, to perform some small dedicated tasks.
 
-Under a sliced wait scheme that lets these threads poll when GC participation would be needed, these threads will then need to be continuously scheduled by the CPU to execute. This would continuously consume energy, and take throughput performance away from the actually executing threads in the program. This is not expected to scale well especially on mobile devices.
+Under a sliced wait scheme that lets these threads poll when GC participation would be needed, these threads will then need to be continuously scheduled by the CPU to execute. This would consume energy, and take throughput performance away from the actually executing threads in the program. This is not expected to scale well especially on mobile devices.
 
 Currently Emgc does not tune its sleep quantum in any way, but at the time of writing has it set to [a ridiculously low value of 100 nsecs](https://github.com/juj/emgc/blob/df39cb6c4a60be87334073fd68e999177a118fd8/emgc-multithreaded.c#L53). This may change after more experience from real-world application benchmarking is gained.
