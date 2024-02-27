@@ -2,7 +2,7 @@
 
 A tiny low-level research garbage collector to be used solely on the Emscripten WebAssembly platform.
 
-This is a toy project used to introspect Emscripten compiler behavior. Not for production use.
+This is a ***toy*** project used to introspect Emscripten compiler behavior and to learn about challenges of garbage collection in WebAssembly. 🟥**Not**🟥 for production use.
 
  - [ℹ Introduction](#introduction)
  - [📄 Usage](#usage)
@@ -191,6 +191,14 @@ Weak pointers have slightly different semantics to strong pointers:
 Note that unlike root and leaf properties that are properties of the allocation itself, weak vs strong pointers are a property of the pointer. A single GC allocation can have a combination of several strong and weak pointers pointing to it.
 
 Internally weak pointers are implemented via *pointer disguising*, which makes the marking process skip over them.
+
+### 🏠 Interior Pointers
+
+In some instances, it is required that the garbage collector is able to detect pointers that are pointing inside a managed allocation, and these *interior* pointers are expected to also keep the object alive.
+
+This kind of scenario may occur for example in managed programming languages that support inheritance. An allocation of a derived class may be stored in a variable that points to its base class, resulting in an interior pointer being stored in memory.
+
+Emgc supports the detection of interior pointers
 
 ### 📚 Stack Scanning
 
