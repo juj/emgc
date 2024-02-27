@@ -415,7 +415,7 @@ There is a way to avoid needing to sleep in small quantas, which is possible to 
 
 With the Emscripten **--spill-pointers** build flag, this is possible, since all pointers are spilled onto the LLVM data stack in Wasm linear memory.
 
-When that is a possibility, then it is possible to let each thread "give up" the responsibility to scan their own stacks, if the need for a GC might happen while the thread is sleeping (e.g. waiting for a futex).
+When that is a possibility, then each thread can "give up" the responsibility to scan their own stacks for the duration of when they are sleeping, and a GC might happen.
 
 Emgc implements this kind of "stack orphaning" technique in its multithreaded build mode. Under this mode, the application may call `gc_temporarily_leave_fence()` to give up its call stack temporarily, as long as the thread promises that it will not access any managed objects, until calling the matching function `gc_return_to_fence()` to resume execution inside the managed scope.
 
