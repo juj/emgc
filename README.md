@@ -321,7 +321,7 @@ This section details some design problems that have been observed while implemen
 
 ## 📚 The Hidden Stack Problem
 
-In WebAssembly, the program callstack is not introspectable by user code. This prevents a garbage collector from finding pointers on the stack. For more details, check the previous [Stack Scanning](#-stack-scanning) section above.
+In WebAssembly, the callstack of the VM executing the code is not introspectable by user code. This prevents a garbage collector from finding pointers in function local variables in a straightforward manner. For more details and resolutions, check the previous [Stack Scanning](#-stack-scanning) section above.
 
 There is a proposed solution to this issue in [WebAssembly/design#1459](https://github.com/WebAssembly/design/issues/1459)
 
