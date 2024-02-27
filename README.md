@@ -192,14 +192,6 @@ Note that unlike root and leaf properties that are properties of the allocation 
 
 Internally weak pointers are implemented via *pointer disguising*, which makes the marking process skip over them.
 
-### 🏠 Interior Pointers
-
-In some instances, it is required that the garbage collector is able to detect pointers that are pointing inside a managed allocation, and these *interior* pointers are expected to also keep the object alive.
-
-This kind of scenario may occur for example in managed programming languages that support inheritance. An allocation of a derived class may be stored in a variable that points to its base class, resulting in an interior pointer being stored in memory.
-
-Emgc supports the detection of interior pointers
-
 ### 📚 Stack Scanning
 
 To identify managed pointers on the program stack, Emgc automatically scans the LLVM data stack.
