@@ -23,12 +23,7 @@
 #define HAS_LEAF_BIT(ptr) (((uintptr_t)(ptr) & PTR_LEAF_BIT))
 
 size_t malloc_usable_size(void*);
-
-void *realloc_zeroed(void *ptr, size_t size) // TODO: implement this in emmalloc natively
-{
-  free(ptr);
-  return calloc(size, 1);
-}
+void * __attribute__((weak, __visibility__("default"))) emmalloc_realloc_zeroed(void *ptr, size_t size) { free(ptr); return calloc(size, 1); }
 
 extern char __global_base, __data_end, __heap_base;
 
@@ -74,7 +69,7 @@ static void realloc_table()
   if (2*num_allocs >= table_mask) table_mask = table_mask ? ((table_mask << 1) | 1) : 63;
   else while(table_mask >= ((8*num_allocs) | 127)) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
-  if (old_mask != table_mask) mark_table = (uint8_t*)realloc_zeroed(mark_table, (table_mask+1)>>3);
+  if (old_mask != table_mask) mark_table = (uint8_t*)emmalloc_realloc_zeroed(mark_table, (table_mask+1)>>3);
 
   uint64_t *old_used_table = (uint64_t *)used_table;
   void **old_table = table;
