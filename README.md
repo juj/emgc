@@ -73,7 +73,11 @@ int main()
 
 # 📄 Usage
 
-To use emgc in your program, compile the file `emgc.c` along with your program code, and `#include "emgc.h"`.
+First, install Emscripten SDK against
+ - the [Emgc fork of Emscripten](https://github.com/emscripten-core/emscripten/compare/main...juj:emscripten:emgc) and
+ - the [Emgc fork of Binaryen](https://github.com/WebAssembly/binaryen/compare/main...juj:binaryen:emgc).
+
+Then, to use emgc in your program, compile the file `emgc.c` along with your program code, and `#include "emgc.h"`.
 
 Additionally, you must **choose one** of the **three** possible operation modes in order to use Emgc. See the section [Stack Scanning](#stack-scanning) below.
 
