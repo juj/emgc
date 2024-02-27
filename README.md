@@ -408,3 +408,21 @@ Well, here then comes the other side of the problem. In a large application ther
 Under a sliced wait scheme that lets these threads poll when GC participation would be needed, these threads will then need to be continuously scheduled by the CPU to execute. This would consume energy, and take throughput performance away from the actually executing threads in the program. This is not expected to scale well especially on mobile devices.
 
 Currently Emgc does not tune its sleep quantum in any way, but at the time of writing has it set to [a ridiculously low value of 100 nsecs](https://github.com/juj/emgc/blob/df39cb6c4a60be87334073fd68e999177a118fd8/emgc-multithreaded.c#L53). This may change after more experience from real-world application benchmarking is gained.
+
+### A Solution To Avoid Sleep Slicing
+
+There is a way to avoid needing to sleep in small quantas, which is possible to implement ***if*** threads are able to scan the stacks of other threads, in addition to their own.
+
+With the Emscripten **--spill-pointers** build flag, this is possible, since all pointers are spilled onto the LLVM data stack in Wasm linear memory.
+
+When that is a possibility, then it is possible to let each thread "give up" the responsibility to scan their own stacks, if the need for a GC might happen while the thread is sleeping (e.g. waiting for a futex).
+
+Emgc implements this kind of "stack orphaning" technique in its multithreaded build mode. Under this mode, the application may call `gc_temporarily_leave_fence()` to give up its call stack temporarily, as long as the thread promises that it will not access any managed objects, until calling the matching function `gc_return_to_fence()` to resume execution inside the managed scope.
+
+Using these kind of primitives, Emgc provides the functions `gc_sleep(nsecs)`, `gc_wait32(...)` and `gc_wait64(...)` to let managed threads perform sleeping and futex waits in a manner that will not block up the GC from progressing.
+
+This has the benefit of allowing threads to sleep for the full duration, so mostly dormant managed background workers will not need to periodically wake up to check for the GC.
+
+Additionally, such dormant background worker threads will not contribute to the Gathering-The-Herd problem either, for a double win.
+
+However the drawback here is that this technique does require that threads are able to scan the stacks of other threads. Unfortunately at the time of writing, this does not seem to be compatible with the [WebAssembly/design#1459](https://github.com/WebAssembly/design/issues/1459) proposal, so if that proposal moves forward, it might lead to a pick-your-poison type of situation for users to juggle between the lesser of drawbacks.

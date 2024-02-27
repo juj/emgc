@@ -39,11 +39,18 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
 typedef void *(*gc_mutator_func)(void *user1, void *user2);
 void *gc_enter_fence_cb(gc_mutator_func mutator_callback, void *user1, void *user2);
 
-uint32_t gc_num_ptrs(void);
-void gc_dump(void);
+void gc_temporarily_leave_fence(void);
+void gc_return_to_fence(void);
+
 void gc_sleep(double msecs);
+// Wait functions return: 0: ok, 1: not-equal, 2: timed-out
+int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t nsecs);
+int gc_wait64(void *addr __attribute__((nonnull)), uint64_t expected, int64_t nsecs);
 
 void gc_participate_to_garbage_collection(void);
+
+uint32_t gc_num_ptrs(void);
+void gc_dump(void);
 
 void gc_loge(const char *format, ...);
 void gc_log(const char *format, ...);

@@ -29,6 +29,7 @@ static void sweep();
 static void mark_from_queue();
 static void mark_current_thread_stack();
 static void mark(void *ptr, size_t bytes);
+static void gc_uninterrupted_sleep(double nsecs);
 
 static _Atomic(int) num_threads_accessing_managed_state, mt_marking_running, num_threads_ready_to_start_marking, num_threads_finished_marking, num_threads_resumed_execution;
 static __thread int this_thread_accessing_managed_state;
@@ -36,21 +37,6 @@ static __thread uintptr_t stack_top;
 #define MARK_QUEUE_MASK 1023
 static void **mark_queue;
 static _Atomic(uint32_t) producer_head, consumer_head, queue_tail;
-
-static void gc_uninterrupted_sleep(double nsecs)
-{
-#if defined(__EMSCRIPTEN_SHARED_MEMORY__)
-  if (emscripten_current_thread_is_wasm_worker()) { int32_t dummy = 0; __builtin_wasm_memory_atomic_wait32(&dummy, 0, nsecs); }
-  else
-#endif
-    for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) ; // nop
-}
-
-// TODO: attribute(noinline) doesn't seem to prevent this function from not being inlined. Adding EMSCRIPTEN_KEEPALIVE seems to help, but is excessive.
-void EMSCRIPTEN_KEEPALIVE __attribute__((noinline)) gc_sleep(double nsecs)
-{
-  for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) gc_uninterrupted_sleep(100);
-}
 
 static void wait_for_all_participants()
 {

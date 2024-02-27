@@ -95,6 +95,7 @@ static void realloc_table()
 
 #include "emgc-finalizer.c"
 #include "emgc-multithreaded.c"
+#include "emgc-sleep.c"
 
 void *gc_malloc(size_t bytes)
 {
@@ -175,6 +176,7 @@ void gc_collect()
 #endif
 
   mark_current_thread_stack();
+  mark_orphaned_stacks();
 
   if (roots) mark((void*)roots, (roots_mask+1)*sizeof(void*));
 
