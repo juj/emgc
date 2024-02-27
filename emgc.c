@@ -33,11 +33,15 @@ static uint32_t num_allocs, num_table_entries, table_mask;
 
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
 
+static int gc_looks_like_ptr(uintptr_t val)
+{
+  return (IS_ALIGNED(val, 8) && val - (uintptr_t)&__heap_base < (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base);
+}
+
 static uint32_t table_find(void *ptr)
 {
-  if (IS_ALIGNED(ptr, 8) && (uintptr_t)ptr - (uintptr_t)&__heap_base < (uintptr_t)emscripten_get_heap_size() - (uintptr_t)&__heap_base)
-    for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
-      if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
+  for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
+    if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
   return INVALID_INDEX;
 }
 
@@ -186,6 +190,7 @@ void gc_collect_when_stack_is_empty() { emscripten_set_timeout(collect_when_stac
 
 int gc_is_ptr(void *ptr)
 {
+  if (!gc_looks_like_ptr((uintptr_t)ptr)) return 0;
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   GC_MALLOC_RELEASE();

@@ -45,6 +45,9 @@ again_head:
 #else
 static void mark_maybe_ptr(void *ptr)
 {
+  // N.b. performance benchmark shows that marking performance would be ~doubled by omitting this check, but that could give false positives?
+  if (!gc_looks_like_ptr((uintptr_t)ptr)) return;
+
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
     if (REMOVE_FLAG_BITS(table[i]) == ptr)
     {
