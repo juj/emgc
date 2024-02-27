@@ -54,8 +54,10 @@ static void table_insert(void *ptr)
   while(u == (uint64_t)-1)
     u = used64[(i64 = (i64+1) & (table_mask >> 6))];
   i = (i64<<6) + __builtin_ctzll(~u);
+  if (!table[i]) ++num_table_entries;
   table[i] = ptr;
   BITVEC_SET(used_table, i);
+  ++num_allocs;
 }
 
 static void table_free(uint32_t i)
@@ -81,6 +83,7 @@ static void realloc_table()
   used_table = (uint8_t*)calloc(((table_mask+1)>>3)
                                + (table_mask+1)*sizeof(void*), sizeof(uint8_t));
   table = (void**)(used_table + ((table_mask+1)>>3));
+  num_table_entries = 0;
 
   if (old_table)
     for(uint32_t i = 0, offset; i <= old_mask; i += 64)
@@ -88,7 +91,6 @@ static void realloc_table()
         table_insert(old_table[i + (offset = __builtin_ctzll(bits))]);
 
   free(old_used_table);
-  num_table_entries = num_allocs; // The hash table is tight again now with no dirty entries.
 }
 
 #include "emgc-finalizer.c"
@@ -100,8 +102,6 @@ void *gc_malloc(size_t bytes)
   void *ptr = malloc(bytes);
   if (!ptr) return 0;
   GC_MALLOC_ACQUIRE();
-  ++num_allocs;
-  ++num_table_entries;
   if (2*num_table_entries >= table_mask) realloc_table();
   table_insert(ptr);
   GC_MALLOC_RELEASE();
@@ -197,4 +197,5 @@ int gc_is_ptr(void *ptr)
   return i != INVALID_INDEX;
 }
 
+#include "emgc-ptr_base.c"
 #include "emgc-debug.c"
