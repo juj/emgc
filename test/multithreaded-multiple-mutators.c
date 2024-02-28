@@ -12,10 +12,10 @@ emscripten_wasm_worker_t worker[NT];
 
 _Atomic(int) worker_quit;
 
+uint32_t ptrs_before;
+
 void collect_periodically(void *unused)
 {
-  uint32_t ptrs_before = gc_num_ptrs();
-
   // Benchmark collection speed.
   double t0 = emscripten_performance_now();
   gc_collect();
@@ -28,7 +28,8 @@ void collect_periodically(void *unused)
   for(int i = 0; i < 3; ++i) gc_collect();
 
   uint32_t ptrs_after = gc_num_ptrs();
-  gc_log("Freed %d ptrs (down to %d). Collect took %f msecs.", ptrs_before - ptrs_after, ptrs_after, t1-t0);
+  gc_log("Before: %d ptrs, After: %d ptrs (diff %d ptrs). Collect took %f msecs.", ptrs_before, ptrs_after, ptrs_after - ptrs_before, t1-t0);
+  ptrs_before = ptrs_after;
   emscripten_set_timeout(collect_periodically, 100, 0);
 }
 
