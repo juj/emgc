@@ -4,9 +4,9 @@
 // by calling gc_temporarily_leave_fence(), even when it has GC pointers on its stack.
 // Then, when the thread has concluded the futex/sleep operation, it will re-enter
 // the fence by calling gc_return_to_fence().
-// Leaving and re-entering the fence will "orphan" the caller's stack that may contain managed GC pointers.
+// Leaving the fence will "orphan" the caller's stack that may contain managed GC pointers.
 // When the stack is orphaned, it is placed in a global "orphaned stacks" data structure.
-// If a GC operation arrives while the stack is orphaned, **some other thread** will mark the orphaned stack
+// If a GC operation takes place while the stack is orphaned, some other thread will mark all the orphaned stacks
 // on behalf of the thread that stepped out of the fence.
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
@@ -23,14 +23,18 @@ void gc_temporarily_leave_fence()
   if (!this_thread_accessing_managed_state) return;
 
   gc_acquire_lock(&orphan_stack_lock);
-  if (orphan_stack_size >= orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = orphan_stack_cap*2 + 1)*sizeof(range));
-  orphan_stacks[orphan_stack_size].start = (void*)emscripten_stack_get_current();
-  orphan_stacks[orphan_stack_size].end = (void*)stack_top;
-  my_orphan_stack_pos = orphan_stack_size++;
+  int pos = orphan_stack_size;
+  for(int i = 0; i < orphan_stack_size; ++i)
+    if (!orphan_stacks[i].start) { pos = i; break; }
+  if (pos >= orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = orphan_stack_cap*2 + 1)*sizeof(range));
+  orphan_stacks[pos].start = (void*)emscripten_stack_get_current();
+  orphan_stacks[pos].end = (void*)stack_top;
+  my_orphan_stack_pos = pos++;
+  if (pos >= orphan_stack_size) ++orphan_stack_size;
   gc_release_lock(&orphan_stack_lock);
 
   gc_participate_to_garbage_collection();
-  // --num_threads_accessing_managed_state; // xxx todo: this is currently not working
+  --num_threads_accessing_managed_state;
 #endif
 }
 
@@ -39,11 +43,12 @@ void gc_return_to_fence()
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (!this_thread_accessing_managed_state) return;
 
-  // ++num_threads_accessing_managed_state; // xxx todo: this is currently not working
+  ++num_threads_accessing_managed_state;
   gc_participate_to_garbage_collection();
 
   gc_acquire_lock(&orphan_stack_lock);
-  if (my_orphan_stack_pos < --orphan_stack_size) orphan_stacks[my_orphan_stack_pos] = orphan_stacks[orphan_stack_size];
+  orphan_stacks[my_orphan_stack_pos].start = 0;
+  if (my_orphan_stack_pos >= orphan_stack_size) --orphan_stack_size;
   gc_release_lock(&orphan_stack_lock);
 #endif
 }
