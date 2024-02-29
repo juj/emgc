@@ -22,5 +22,6 @@ int main()
   {
     test(num);
     gc_collect(); // Free up memory for the next test.
+    gc_log("-----------");
   }
 }
