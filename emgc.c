@@ -64,9 +64,15 @@ static void table_free(uint32_t i)
 {
   assert(table[i] > SENTINEL_PTR);
   free(REMOVE_FLAG_BITS(table[i]));
-  table[i] = SENTINEL_PTR;
   BITVEC_CLEAR(used_table, i);
   --num_allocs;
+  table[i] = SENTINEL_PTR;
+  if (!table[(i+1)&table_mask]) // Opportunistically remove sentinels if they aren't needed in these hash slots.
+    for(;table[i] == SENTINEL_PTR; i = (i+table_mask) & table_mask)
+    {
+      table[i] = 0;
+      --num_table_entries;
+    }
 }
 
 static void realloc_table()
