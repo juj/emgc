@@ -60,7 +60,6 @@ static void mark_maybe_ptr(void *ptr)
 #endif
 
 #ifdef __wasm_simd128__
-#include <wasm_simd128.h>
 static void mark(void *ptr, size_t bytes)
 {
   assert(IS_ALIGNED(ptr, sizeof(void*)));

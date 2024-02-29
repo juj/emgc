@@ -5,6 +5,9 @@
 #include <emscripten/heap.h>
 #include <emscripten/eventloop.h>
 #include "emgc.h"
+#ifdef __wasm_simd128__
+#include <wasm_simd128.h>
+#endif
 
 // Pass this define to not scan the global memory during GC. If you register all global managed
 // variables yourself, skipping automatic marking can improve performance.
@@ -79,8 +82,8 @@ static void table_free(uint32_t i)
 static void realloc_table()
 {
   uint32_t old_mask = table_mask;
-  if (2*num_allocs >= table_mask) table_mask = table_mask ? ((table_mask << 1) | 1) : 63;
-  else while(table_mask >= ((8*num_allocs) | 127)) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
+  if (2*num_allocs >= table_mask) table_mask = table_mask ? ((table_mask << 1) | 1) : 127;
+  else while(table_mask >= ((8*num_allocs) | 255)) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
   if (old_mask != table_mask) mark_table = (uint8_t*)emmalloc_realloc_zeroed(mark_table, (table_mask+1)>>3);
 
@@ -141,15 +144,29 @@ static void sweep()
   // finalizer to sweep. If so, find a finalizer to run.
   if (num_finalizers_marked < num_finalizers) find_and_run_a_finalizer();
   else // No finalizers to invoke, so perform a real sweep that frees up GC objects.
+  {
+#ifdef __wasm_simd128__
+    for(uint32_t i = 0, offset; i <= table_mask; i += 128)
+    {
+      v128_t g = wasm_v128_and(wasm_v128_load(used_table + (i>>3)), wasm_v128_not(wasm_v128_load(mark_table + (i>>3))));
+      if (wasm_v128_any_true(g))
+      {
+        for(uint64_t lo = wasm_u64x2_extract_lane(g, 0); lo; lo ^= (1ull<<offset)) table_free(i + (offset = __builtin_ctzll(lo)));
+        for(uint64_t hi = wasm_u64x2_extract_lane(g, 1); hi; hi ^= (1ull<<offset)) table_free(i + 64 + (offset = __builtin_ctzll(hi)));
+      }
+    }
+#else
     for(uint32_t i = 0, offset; i <= table_mask; i += 64)
       for(uint64_t b = ((uint64_t*)used_table)[i>>6] & ~((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
         table_free(i + (offset = __builtin_ctzll(b)));
+#endif
+  }
 
   // Compactify managed allocation array if it is now overly large to fit all allocations.
   // Or if the size doesn't change, then since we still hold the gc_malloc lock, this
   // is a good moment to clear the mark table back to zero for the next allocation
   // (which helps avoid a tricky double synchronization at start_multithreaded_collection())
-  if (table_mask >= ((8*num_allocs) | 127)) realloc_table();
+  if (table_mask >= ((8*num_allocs) | 255)) realloc_table();
   else memset(mark_table, 0, (table_mask+1)>>3);
 
   GC_MALLOC_RELEASE();
