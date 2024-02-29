@@ -82,7 +82,7 @@ static void table_free(uint32_t i)
 static void realloc_table()
 {
   uint32_t old_mask = table_mask;
-  if (2*num_allocs >= table_mask) table_mask = table_mask ? ((table_mask << 1) | 1) : 127;
+  if (2*num_allocs >= table_mask) table_mask = (table_mask << 1) | 127;
   else while(table_mask >= ((8*num_allocs) | 255)) table_mask >>= 1; // TODO: Replace while loop with a __builtin_clz() call
 
   if (old_mask != table_mask) mark_table = (uint8_t*)emmalloc_realloc_zeroed(mark_table, (table_mask+1)>>3);
