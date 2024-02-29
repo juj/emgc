@@ -96,11 +96,12 @@ static void realloc_table()
   assert(mark_table && used_table);
 
   if (old_table)
+  {
     for(uint32_t i = 0, offset; i <= old_mask; i += 64)
       for(uint64_t bits = old_used_table[i>>6]; bits; bits ^= (1ull<<offset))
         table_insert(old_table[i + (offset = __builtin_ctzll(bits))]);
-
-  free(old_used_table);
+    free(old_used_table);
+  }
 }
 
 #include "emgc-finalizer.c"
