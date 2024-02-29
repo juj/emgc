@@ -90,10 +90,10 @@ static void realloc_table()
   uint64_t *old_used_table = (uint64_t *)used_table;
   void **old_table = table;
 
-  used_table = (uint8_t*)calloc(((table_mask+1)>>3)
-                               + (table_mask+1)*sizeof(void*), sizeof(uint8_t));
+  used_table = (uint8_t*)calloc(((table_mask+1)>>3) + (table_mask+1)*sizeof(void*), 1);
   table = (void**)(used_table + ((table_mask+1)>>3));
   num_table_entries = num_allocs = 0;
+  assert(mark_table && used_table);
 
   if (old_table)
     for(uint32_t i = 0, offset; i <= old_mask; i += 64)

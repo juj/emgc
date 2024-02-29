@@ -1,13 +1,20 @@
 // Stress tests performing many allocations that all are retained.
-// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS
+// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS -DNDEBUG
 #include "test.h"
 #include <emscripten/html5.h>
+#include <string.h>
+
+size_t malloc_usable_size(void*);
 
 void __attribute__((noinline)) test(uint32_t num)
 {
   double t0 = emscripten_performance_now();
   void **allocs = gc_malloc(num*sizeof(void*));
-  for(uint32_t i = 0; i < num; ++i) allocs[i] = gc_malloc(4);
+  for(uint32_t i = 0; i < num; ++i)
+  {
+    allocs[i] = gc_malloc(4);
+    memset(allocs[i], 0, malloc_usable_size(allocs[i])); // Clear memory to avoid false GC scans
+  }
   double t1 = emscripten_performance_now();
   gc_collect();
   double t2 = emscripten_performance_now();
@@ -18,7 +25,7 @@ void __attribute__((noinline)) test(uint32_t num)
 
 int main()
 {
-  for(uint32_t num = 1; num <= 33554432; num *= 2)
+  for(uint32_t num = 1; num <= 67108864; num *= 2)
   {
     test(num);
     gc_collect(); // Free up memory for the next test.
