@@ -13,6 +13,7 @@ void __attribute__((noinline)) test(uint32_t num)
   for(uint32_t i = 0; i < num; ++i)
   {
     allocs[i] = gc_malloc(4);
+    if (!allocs[i]) { printf("Allocation failed!\n"); break; }
     memset(allocs[i], 0, malloc_usable_size(allocs[i])); // Clear memory to avoid false GC scans
   }
   double t1 = emscripten_performance_now();

@@ -11,6 +11,7 @@ void __attribute__((noinline)) alloc(uint32_t num)
   while(num--)
   {
     void *ptr = gc_malloc(4);
+    if (!ptr) { printf("Allocation failed!\n"); break; }
     memset(ptr, 0, malloc_usable_size(ptr)); // Clear memory to avoid false GC scans
   }
 }
