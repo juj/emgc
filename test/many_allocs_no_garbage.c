@@ -18,7 +18,7 @@ void __attribute__((noinline)) test(uint32_t num)
 
 int main()
 {
-  for(uint32_t num = 1; num <= 2097152; num *= 2)
+  for(uint32_t num = 1; num <= 33554432; num *= 2)
   {
     test(num);
     gc_collect(); // Free up memory for the next test.
