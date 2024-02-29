@@ -70,13 +70,12 @@ static void table_free(uint32_t i)
   BITVEC_CLEAR(used_table, i);
   --num_allocs;
   if (table[(i+1)&table_mask]) table[i] = SENTINEL_PTR;
-  else // Opportunistically clear sentinels if they aren't needed in these hash slots.
-    for(;;)
-    {
-      --num_table_entries;
-      table[i] = 0;
-      if (table[i = (i+table_mask) & table_mask] != SENTINEL_PTR) break;
-    }
+  else for(;;) // Opportunistically clear sentinels if they aren't needed in these hash slots.
+  {
+    --num_table_entries;
+    table[i] = 0;
+    if (table[i = (i+table_mask) & table_mask] != SENTINEL_PTR) break;
+  }
 }
 
 static void realloc_table()
