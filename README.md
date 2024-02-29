@@ -303,7 +303,7 @@ int main()
 
 The functions `gc_malloc()`, `gc_malloc_root()`, `gc_malloc_leaf()` and `gc_acquire_strong_ptr()` may only be called from inside a fenced scope.
 
-The functions `gc_collect()` and `gc_collect_when_stack_is_empty()` may freely be called from anywhere **outside** a fenced scope (and will implicity place the caller inside a fenced scope for the duration of the call).
+The functions `gc_collect()` and `gc_collect_when_stack_is_empty()` may freely be called from anywhere **outside** a fenced scope (and will implicitly place the caller inside a fenced scope for the duration of the call).
 
 When any thread initiates a garbage collection with `gc_collect()`, all threads that are currently executing code inside a fence will immediately join to simultaneously work on the *mark phase* of the garbage collection process in parallel.
 
@@ -327,7 +327,7 @@ This section details some design problems that have been observed while implemen
 
 In WebAssembly, the callstack of the VM executing the code is not introspectable by user code. This prevents a garbage collector from finding pointers in function local variables in a straightforward manner. For more details and resolutions, check the previous [Stack Scanning](#-stack-scanning) section above.
 
-There is a proposed solution to this issue in [WebAssembly/design#1459](https://github.com/WebAssembly/design/issues/1459)
+There is a proposed solution to this issue in [WebAssembly/design#1459](https://github.com/WebAssembly/design/issues/1459).
 
 ## 𝕏² Quadratic Memory Usage
 
@@ -406,8 +406,6 @@ Then, an application might be attracted to just choosing a short wait slice like
 Well, here then comes the other side of the problem. In a large application there may exist a few dozen of background threads, all typically waiting dormant most of their lifetime, to perform some small dedicated tasks.
 
 Under a sliced wait scheme that lets these threads poll when GC participation would be needed, these threads will then need to be continuously scheduled by the CPU to execute. This would consume energy, and take throughput performance away from the actually executing threads in the program. This is not expected to scale well especially on mobile devices.
-
-Currently Emgc does not tune its sleep quantum in any way, but at the time of writing has it set to [a ridiculously low value of 100 nsecs](https://github.com/juj/emgc/blob/df39cb6c4a60be87334073fd68e999177a118fd8/emgc-multithreaded.c#L53). This may change after more experience from real-world application benchmarking is gained.
 
 ### A Solution To Avoid Sleep Slicing
 
