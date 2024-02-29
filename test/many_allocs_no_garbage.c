@@ -1,5 +1,5 @@
 // Stress tests performing many allocations that all are retained.
-// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS -O0
+// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS
 #include "test.h"
 #include <emscripten/html5.h>
 
@@ -18,7 +18,7 @@ void __attribute__((noinline)) test(uint32_t num)
 
 int main()
 {
-  for(uint32_t num = 1; num <= 1048576; num *= 2)
+  for(uint32_t num = 1; num <= 2097152; num *= 2)
   {
     test(num);
     gc_collect(); // Free up memory for the next test.
