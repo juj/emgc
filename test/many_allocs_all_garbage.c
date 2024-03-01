@@ -26,7 +26,7 @@ int main()
     gc_collect();
     double t2 = emscripten_performance_now();
     uint32_t size = num*4;
-    printf("%u objects: gc_malloc(): %.3f msecs. gc_collect(): %.3f msecs. i.e. marked %.3f MB/second. %u objects left.\n", num, t1-t0, t2-t1, size * 1000.0 / ((t1-t0)*1024*1024), gc_num_ptrs());
+    printf("%u objects: gc_malloc(): %.3f msecs. gc_collect(): %.3f msecs. i.e. marked %.3f MB/second. %u objects left.\n", num, t1-t0, t2-t1, size * 1000.0 / ((t2-t1)*1024*1024), gc_num_ptrs());
     gc_log("-----------");
   }
 }
