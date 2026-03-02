@@ -19,7 +19,7 @@ modes = [['-O3', '-g2']]
 
 tests = glob.glob('test/*.c')
 if len(argv) > 0:
-  sub = argv[1]
+  sub = argv[0]
   tests = filter(lambda t: sub in t, tests)
 
 def bat_suffix(executable):
