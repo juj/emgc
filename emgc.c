@@ -19,7 +19,7 @@
 #define BITVEC_CLEAR(arr, i) ((arr)[(i)>>3] &= ~(1<<((i)&7)))
 #define REMOVE_FLAG_BITS(ptr) ((void*)((uintptr_t)(ptr) & ~(uintptr_t)7))
 #define INVALID_INDEX ((uint32_t)-1)
-#define SENTINEL_PTR ((void*)31)
+#define SENTINEL_PTR ((void*)31) // Use a magic constant bit pattern that is > 0 and > all flag bits, but < any valid ptr, to represent a deleted allocation from hash table.
 #define PTR_FINALIZER_BIT ((uintptr_t)1)
 #define PTR_LEAF_BIT ((uintptr_t)2)
 #define PTR_WEAK_BIT ((uintptr_t)4)
@@ -52,6 +52,7 @@ static uint32_t table_find(void *ptr)
 
 static void table_insert(void *ptr)
 {
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
   uint32_t i = hash_ptr(ptr);
   uint32_t i64 = i>>6;
   uint64_t *used64 = (uint64_t*)used_table;
@@ -67,6 +68,7 @@ static void table_insert(void *ptr)
 
 static void table_free(uint32_t i)
 {
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
   assert(table[i] > SENTINEL_PTR);
   free(REMOVE_FLAG_BITS(table[i]));
   BITVEC_CLEAR(used_table, i);
@@ -82,6 +84,7 @@ static void table_free(uint32_t i)
 
 static void realloc_table()
 {
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
   uint32_t old_mask = table_mask;
   if (2*num_allocs >= table_mask) table_mask <<= 1;
   else if (((8*num_allocs)|127) < table_mask) table_mask = (1 << (32-__builtin_clz(2*num_allocs))) - 1;
