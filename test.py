@@ -18,7 +18,12 @@ if len(sys.argv) > 1:
   sub = sys.argv[1]
   tests = filter(lambda t: sub in t, tests)
 
-cmd = ['emcc.bat', 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '--js-library', 'lib_emgc.js']
+def bat_suffix(executable):
+  if sys.platform == 'win32':
+    return f'{executable}.bat'
+  return executable
+
+cmd = [bat_suffix('emcc'), 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '--js-library', 'lib_emgc.js']
 
 failures = []
 passes = 0
@@ -37,7 +42,7 @@ for m in modes:
     try:
       subprocess.check_call(c)
       if run_in_browser:
-        subprocess.check_call(['emrun.bat', 'a.html'])
+        subprocess.check_call([bat_suffix('emrun'), 'a.html'])
       else:
         subprocess.check_call(['node', 'a.js'])
       passes += 1
