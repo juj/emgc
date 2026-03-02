@@ -9,13 +9,17 @@ for o in ['-O0', '-O1', '-O2', '-O3', '-Os', '-Oz']:
           for l in ['', '-flto']:
             modes += [[o, d, i, m, s, l]]
 
+skip_browser_tests = True if '--skip-browser-tests' in sys.argv else False
+
+argv = list(filter(lambda t: not t.startswith('--'), sys.argv[1:]))
+
 # Uncomment for quick testing in one mode.
 #modes = [['-O3', '-g2', '-DNDEBUG', '-mbulk-memory', '-sMALLOC=emmalloc', '-flto', '-msimd128']]
 modes = [['-O3', '-g2']]
 
 tests = glob.glob('test/*.c')
-if len(sys.argv) > 1:
-  sub = sys.argv[1]
+if len(argv) > 0:
+  sub = argv[1]
   tests = filter(lambda t: sub in t, tests)
 
 def bat_suffix(executable):
@@ -32,6 +36,10 @@ for m in modes:
   for t in tests:
     c = cmd + m + [t]
     run_in_browser = '// run: browser' in open(t, 'r').read()
+    if run_in_browser and skip_browser_tests:
+      print(f'--skip-browser-tests: Skipping browser test {c}')
+      continue
+
 #    if run_in_browser:
 #      c += ['--emrun']
     flags = re.findall(r"// flags: (.*)", open(t, 'r').read())
