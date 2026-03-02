@@ -68,6 +68,7 @@ static void table_insert(void *ptr)
   i = (i64<<6) + __builtin_ctzll(~u);
   if (!table[i]) ++num_table_entries;
   table[i] = ptr;
+  assert(!BITVEC_GET(used_table, i)); // Bitfield must have been clear to insert.
   BITVEC_SET(used_table, i);
   ++num_allocs;
 }
@@ -76,6 +77,7 @@ static void table_free(uint32_t i)
 {
   ASSERT_GC_MALLOC_IS_ACQUIRED();
   assert(table[i] > SENTINEL_PTR);
+  assert(BITVEC_GET(used_table, i)); // There must be a valid entry in this table index.
   free(REMOVE_FLAG_BITS(table[i]));
   BITVEC_CLEAR(used_table, i);
   --num_allocs;
@@ -96,7 +98,11 @@ static void realloc_table()
   else if (((8*num_allocs)|127) < table_mask) table_mask = (1 << (32-__builtin_clz(2*num_allocs))) - 1;
   table_mask |= 127;
 
-  if (old_mask != table_mask) mark_table = (uint8_t*)emmalloc_realloc_zeroed(mark_table, (table_mask+1)>>3);
+  if (old_mask != table_mask)
+  {
+    mark_table = (uint8_t*)emmalloc_realloc_zeroed(mark_table, (table_mask+1)>>3);
+    assert(mark_table); // This allocation must be infallible.
+  }
 
   uint64_t *old_used_table = (uint64_t *)used_table;
   void **old_table = table;
