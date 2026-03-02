@@ -120,6 +120,27 @@ void *gc_malloc(size_t bytes)
   return ptr;
 }
 
+void *gc_calloc(size_t bytes)
+{
+  void *ptr = gc_malloc(bytes);
+  if (ptr) memset(ptr, 0, bytes);
+  return ptr;
+}
+
+void *gc_calloc_root(size_t bytes)
+{
+  void *ptr = gc_malloc_root(bytes);
+  if (ptr) memset(ptr, 0, bytes);
+  return ptr;
+}
+
+void *gc_calloc_leaf(size_t bytes)
+{
+  void *ptr = gc_malloc_leaf(bytes);
+  if (ptr) memset(ptr, 0, bytes);
+  return ptr;
+}
+
 void gc_free(void *ptr)
 {
   if (!ptr) return;

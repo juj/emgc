@@ -7,14 +7,17 @@
 extern "C" {
 #endif
 
-void *gc_malloc(size_t bytes);
+void *gc_malloc(size_t bytes); // Allocates memory with unspecified (dirty) initial contents.
+void *gc_calloc(size_t bytes); // Allocates zero-initialized memory.
 void gc_free(void *ptr);
 
 void *gc_malloc_root(size_t bytes);
+void *gc_calloc_root(size_t bytes);
 void gc_make_root(void *ptr);
 void gc_unmake_root(void *ptr);
 
 void *gc_malloc_leaf(size_t bytes);
+void *gc_calloc_leaf(size_t bytes);
 void gc_make_leaf(void *ptr);
 void gc_unmake_leaf(void *ptr);
 
