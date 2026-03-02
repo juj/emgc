@@ -35,6 +35,7 @@ int gc_weak_ptr_equals(void *weak_or_strong_ptr1, void *weak_or_strong_ptr2);
 int gc_is_ptr(void *weak_or_strong_ptr);
 int gc_is_weak_ptr(void *weak_or_strong_ptr);
 int gc_is_strong_ptr(void *weak_or_strong_ptr);
+int gc_is_root(void *strong_ptr); // Must be called with a strong pointer.
 
 typedef void (*gc_finalizer)(void *ptr);
 void gc_register_finalizer(void *ptr, gc_finalizer finalizer);

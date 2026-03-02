@@ -14,6 +14,15 @@ static void insert_root(void *ptr)
   roots[i] = ptr;
 }
 
+int gc_is_root(void *ptr)
+{
+  if (!ptr) return 0;
+  assert(!gc_is_weak_ptr(ptr));
+  for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
+    if (roots[i] == ptr) return 1;
+  return 0;
+}
+
 void gc_make_root(void *ptr)
 {
   uint32_t old_mask = roots_mask;
