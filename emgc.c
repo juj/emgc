@@ -22,8 +22,10 @@
 #define SENTINEL_PTR ((void*)31)
 #define PTR_FINALIZER_BIT ((uintptr_t)1)
 #define PTR_LEAF_BIT ((uintptr_t)2)
+#define PTR_WEAK_BIT ((uintptr_t)4)
 #define HAS_FINALIZER_BIT(ptr) (((uintptr_t)(ptr) & PTR_FINALIZER_BIT))
 #define HAS_LEAF_BIT(ptr) (((uintptr_t)(ptr) & PTR_LEAF_BIT))
+#define HAS_WEAK_BIT(ptr) (((uintptr_t)(ptr) & PTR_WEAK_BIT))
 
 size_t malloc_usable_size(void*);
 void * __attribute__((weak, __visibility__("default"))) emmalloc_realloc_zeroed(void *ptr, size_t size) { free(ptr); return calloc(size, 1); }
