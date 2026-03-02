@@ -59,6 +59,13 @@ mergeInto(LibraryManager.library, {
   gc_loge__deps: ['gc_fprintf'],
   gc_loge: function(format, varArgs) {
     _gc_fprintf(1/*stderr*/, format, varArgs);
-  }
+  },
 
+  js_try_finally: function(func, user1, user2, finally_func) {
+    try {
+      return {{{ makeDynCall('ppp', 'func') }}}(user1, user2);
+    } finally {
+      {{{ makeDynCall('v', 'finally_func') }}} ();
+    }
+  }
 });

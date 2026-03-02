@@ -24,13 +24,5 @@ mergeInto(LibraryManager.library, {
   call_from_js_v: function(func) {
     {{{ makeDynCall('v', 'func') }}}();
     _clear_stack();
-  },
-
-  js_try_finally: function(func, user1, user2, finally_func) {
-    try {
-      return {{{ makeDynCall('ppp', 'func') }}}(user1, user2);
-    } finally {
-      {{{ makeDynCall('v', 'finally_func') }}} ();
-    }
   }
 });
