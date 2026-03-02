@@ -74,8 +74,8 @@ int main()
 # 📄 Usage
 
 First, install Emscripten SDK against
- - the [Emgc fork of Emscripten](https://github.com/emscripten-core/emscripten/compare/main...juj:emscripten:emgc) and
- - the [Emgc fork of Binaryen](https://github.com/WebAssembly/binaryen/compare/main...juj:binaryen:emgc).
+ - the [Emgc fork of Emscripten](https://github.com/emscripten-core/emscripten/compare/main...juj:emscripten:emgc3) and
+ - the [Emgc fork of Binaryen](https://github.com/WebAssembly/binaryen/compare/main...juj:binaryen:emgc3).
 
 Then, to use emgc in your program, compile the file `emgc.c` along with your program code, and `#include "emgc.h"`.
 
@@ -315,7 +315,11 @@ N.b. if you are building C++ code with C++ exceptions enabled, you should manual
 
 # 🧪 Running Tests
 
-Execute `python test.py` to run the test suite.
+Execute `python3 test.py` to run the full test suite.
+
+Run `python3 test.py <single_test>` to run an individual test by its file base name.
+
+Pass `--skip-browser-tests` to ignore running any browser-specific tests, and only run the shell tests in Node.js.
 
 # ☠️ Challenges with using a GC in WebAssembly
 
