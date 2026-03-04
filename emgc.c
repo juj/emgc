@@ -38,8 +38,8 @@ static uint32_t num_allocs, num_table_entries, table_mask;
 
 static uint32_t table_find(void *ptr);
 
-#include "emgc-finalizer.c"
 #include "emgc-multithreaded.c"
+#include "emgc-finalizer.c"
 #include "emgc-sleep.c"
 
 static uint32_t hash_ptr(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & table_mask; }
