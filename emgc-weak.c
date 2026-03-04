@@ -23,8 +23,8 @@ int gc_is_strong_ptr(void *ptr)
 void *gc_get_weak_ptr(void *strong_ptr)
 {
   if (!strong_ptr) return 0;
-  if (gc_is_weak_ptr(strong_ptr)) return strong_ptr; // Already a weak ptr?
-
+  assert(!gc_is_weak_ptr(strong_ptr));
+ 
   // Allocate a reference block to hold the masked pointer
   void **ref_block = (void**)gc_malloc(sizeof(void*));
   if (!ref_block) return 0;
