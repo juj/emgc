@@ -77,6 +77,8 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
   }
   insert_finalizer(ptr, finalizer);
 
+  GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   table[i] = (void*)((uintptr_t)table[i] | PTR_FINALIZER_BIT);
+  GC_MALLOC_RELEASE();
 }
