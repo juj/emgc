@@ -51,6 +51,7 @@ static int gc_looks_like_ptr(uintptr_t val)
 
 static uint32_t table_find(void *ptr)
 {
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
   for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
     if (REMOVE_FLAG_BITS(table[i]) == ptr) return i;
   return INVALID_INDEX;
@@ -159,11 +160,9 @@ void gc_free(void *ptr)
   if (!ptr) return;
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
-  if (i != INVALID_INDEX)
-  {
-    table_free(i);
-    gc_unmake_root(ptr);
-  }
+  assert(i != INVALID_INDEX);
+  table_free(i);
+  gc_unmake_root(ptr);
   GC_MALLOC_RELEASE();
 }
 
