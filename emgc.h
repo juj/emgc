@@ -28,7 +28,16 @@ typedef void (*gc_finalizer)(void *ptr);
 void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
 
 void *gc_get_weak_ptr(void *strong_ptr);
-void *gc_acquire_strong_ptr(void *weak_ptr);
+// Given a weak pointer, acquire the referenced strong pointer.
+// Slightly unintuitively, this function takes a pointer to a weak pointer.
+// This is to allow nulling out the original weak pointer, once the strong pointer
+// has been garbage collected.
+// Usage:
+//    void *strong_ptr = gc_malloc(1024);
+//    void *weak_ptr = gc_get_weak_ptr(strong_ptr);
+//    void *strong_ptr_again = gc_acquire_strong_ptr(&weak_ptr);
+//    -> if strong_ptr_again is zero (GC freed the allocation), then weak_ptr will reset to zero as well.
+void *gc_acquire_strong_ptr(void **weak_ptr_ptr __attribute__((nonnull)));
 
 int gc_weak_ptr_equals(void *weak_or_strong_ptr1, void *weak_or_strong_ptr2);
 

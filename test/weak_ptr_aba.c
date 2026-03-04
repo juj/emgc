@@ -45,7 +45,7 @@ void func_reallocate()
       {
         // ABA scenario detected! The old weak pointer should return NULL,
         // NOT the new allocation at the same address
-        void *acquired = gc_acquire_strong_ptr(weak_ptrs[j]);
+        void *acquired = gc_acquire_strong_ptr(&weak_ptrs[j]);
 
         if (acquired != 0)
         {
@@ -77,7 +77,7 @@ int main()
   // Verify weak pointers work before GC
   for (int i = 0; i < NUM_ATTEMPTS; i++)
   {
-    void *acquired = gc_acquire_strong_ptr(weak_ptrs[i]);
+    void *acquired = gc_acquire_strong_ptr(&weak_ptrs[i]);
     require(acquired != 0 && "Weak pointer should resolve before GC");
     require(*(int*)acquired == (i + 1000) && "Should get correct object before GC");
   }
@@ -89,7 +89,7 @@ int main()
   // Verify weak pointers are stale after GC
   for (int i = 0; i < NUM_ATTEMPTS; i++)
   {
-    void *acquired = gc_acquire_strong_ptr(weak_ptrs[i]);
+    void *acquired = gc_acquire_strong_ptr(&weak_ptrs[i]);
     require(acquired == 0 && "Weak pointer should be stale after GC");
   }
 
