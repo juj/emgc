@@ -71,7 +71,7 @@ static void mark(void *ptr, size_t bytes)
 
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; p += 4)
   {
-    v128_t ptrs = wasm_i32x4_sub(wasm_v128_load(p), mem_start);
+    v128_t ptrs = wasm_i32x4_sub(wasm_v128_load(p), mem_start); // Always aligned load as per managed allocations and std::max_align_t being 16 bytes.
     v128_t cmp = wasm_v128_and(wasm_u32x4_lt(ptrs, mem_size), wasm_i32x4_eq(wasm_v128_and(ptrs, align_mask), zero));
     if (wasm_v128_any_true(cmp))
       for(uint32_t bits = wasm_i32x4_bitmask(cmp), offset; bits; bits ^= 1 << offset)
