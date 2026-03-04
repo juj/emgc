@@ -41,13 +41,13 @@ void *gc_get_weak_ptr(void *strong_ptr)
   return ref_block;
 }
 
-void *gc_acquire_strong_ptr(void *weak_or_strong_ptr)
+void *gc_acquire_strong_ptr(void *weak_ptr)
 {
-  if (!weak_or_strong_ptr) return 0;
-  if (gc_is_strong_ptr(weak_or_strong_ptr)) return weak_or_strong_ptr;
+  if (!weak_ptr) return 0;
+  assert(gc_is_weak_ptr(weak_ptr));
 
   // It's a weak pointer, dereference the reference block
-  void **ref_block = (void**)weak_or_strong_ptr;
+  void **ref_block = (void**)weak_ptr;
   void *strong_ptr = (void*)~(uintptr_t)(*ref_block); // Unmask
   assert(strong_ptr != 0); // We should never have a null strong ptr in the first place.
 

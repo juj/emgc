@@ -28,7 +28,7 @@ typedef void (*gc_finalizer)(void *ptr);
 void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
 
 void *gc_get_weak_ptr(void *strong_ptr);
-void *gc_acquire_strong_ptr(void *weak_or_strong_ptr);
+void *gc_acquire_strong_ptr(void *weak_ptr);
 
 int gc_weak_ptr_equals(void *weak_or_strong_ptr1, void *weak_or_strong_ptr2);
 
