@@ -35,7 +35,8 @@ void *gc_get_weak_ptr(void *strong_ptr)
   // Mark the reference block as a weak pointer and as a leaf (don't scan contents)
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ref_block);
-  if (i != INVALID_INDEX) table[i] = (void*)((uintptr_t)table[i] | PTR_WEAK_BIT | PTR_LEAF_BIT);
+  assert(i != INVALID_INDEX);
+  table[i] = (void*)((uintptr_t)table[i] | PTR_WEAK_BIT | PTR_LEAF_BIT);
   GC_MALLOC_RELEASE();
 
   return ref_block;
