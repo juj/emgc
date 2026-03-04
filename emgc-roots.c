@@ -6,8 +6,9 @@ static uint32_t num_roots, roots_mask;
 
 static uint32_t hash_root(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & roots_mask; }
 
-static void insert_root(void *ptr)
+static void insert_root(void *ptr __attribute__((nonnull)))
 {
+  assert(ptr);
   uint32_t i = hash_root(ptr);
   while((uintptr_t)roots[i] > 1) i = (i+1) & roots_mask;
   if ((uintptr_t)roots[i] != 1) ++num_roots;
@@ -23,8 +24,9 @@ int gc_is_root(void *ptr)
   return 0;
 }
 
-void gc_make_root(void *ptr)
+void gc_make_root(void *ptr __attribute__((nonnull)))
 {
+  assert(ptr);
   uint32_t old_mask = roots_mask;
   if (2*num_roots >= roots_mask)
   {
@@ -44,9 +46,10 @@ void gc_make_root(void *ptr)
   insert_root(ptr);
 }
 
-void gc_unmake_root(void *ptr)
+void gc_unmake_root(void *ptr __attribute__((nonnull)))
 {
   if (!roots) return;
+  assert(ptr);
   for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
     if (roots[i] == ptr)
     {
@@ -58,19 +61,21 @@ void gc_unmake_root(void *ptr)
 void *gc_malloc_root(size_t bytes)
 {
   void *ptr = gc_malloc(bytes);
-  gc_make_root(ptr);
+  if (ptr) gc_make_root(ptr);
   return ptr;
 }
 
-void gc_make_leaf(void *ptr)
+void gc_make_leaf(void *ptr __attribute__((nonnull)))
 {
+  assert(ptr);
   uint32_t i = table_find(ptr);
   if (i == INVALID_INDEX) return;
   table[i] = (void*)((uintptr_t)table[i] | PTR_LEAF_BIT);
 }
 
-void gc_unmake_leaf(void *ptr)
+void gc_unmake_leaf(void *ptr __attribute__((nonnull)))
 {
+  assert(ptr);
   uint32_t i = table_find(ptr);
   if (i == INVALID_INDEX) return;
   table[i] = (void*)((uintptr_t)table[i] & ~PTR_LEAF_BIT);

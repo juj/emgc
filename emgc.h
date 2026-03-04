@@ -13,13 +13,13 @@ void gc_free(void *ptr);
 
 void *gc_malloc_root(size_t bytes);
 void *gc_calloc_root(size_t bytes);
-void gc_make_root(void *ptr);
-void gc_unmake_root(void *ptr);
+void gc_make_root(void *ptr __attribute__((nonnull)));
+void gc_unmake_root(void *ptr __attribute__((nonnull)));
 
 void *gc_malloc_leaf(size_t bytes);
 void *gc_calloc_leaf(size_t bytes);
-void gc_make_leaf(void *ptr);
-void gc_unmake_leaf(void *ptr);
+void gc_make_leaf(void *ptr __attribute__((nonnull)));
+void gc_unmake_leaf(void *ptr __attribute__((nonnull)));
 
 void gc_collect(void);
 void gc_collect_when_stack_is_empty(void);
