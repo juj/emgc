@@ -68,17 +68,21 @@ void *gc_malloc_root(size_t bytes)
 void gc_make_leaf(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
+  GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
-  if (i == INVALID_INDEX) return;
+  assert(i != INVALID_INDEX);
   table[i] = (void*)((uintptr_t)table[i] | PTR_LEAF_BIT);
+  GC_MALLOC_RELEASE();
 }
 
 void gc_unmake_leaf(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
+  GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
-  if (i == INVALID_INDEX) return;
+  assert(i != INVALID_INDEX);
   table[i] = (void*)((uintptr_t)table[i] & ~PTR_LEAF_BIT);
+  GC_MALLOC_RELEASE();
 }
 
 void *gc_malloc_leaf(size_t bytes)
