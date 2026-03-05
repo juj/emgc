@@ -37,6 +37,7 @@ static uint8_t *mark_table, *used_table;
 static uint32_t num_allocs, num_table_entries, table_mask;
 
 static uint32_t table_find(void *ptr);
+static void remove_weak_ptr(void *strong_ptr);
 
 #include "emgc-multithreaded.c"
 #include "emgc-finalizer.c"
@@ -79,7 +80,12 @@ static void table_free(uint32_t i)
   ASSERT_GC_MALLOC_IS_ACQUIRED();
   assert(table[i] > SENTINEL_PTR);
   assert(BITVEC_GET(used_table, i)); // There must be a valid entry in this table index.
-  free(REMOVE_FLAG_BITS(table[i]));
+  void *ptr = REMOVE_FLAG_BITS(table[i]);
+  // If this allocation had weak pointer references to it, detach the weak pointer reference block from this
+  // allocation.
+  remove_weak_ptr(ptr);
+  // and free the pointer itself.
+  free(ptr);
   BITVEC_CLEAR(used_table, i);
   --num_allocs;
   if (table[(i+1)&table_mask]) table[i] = SENTINEL_PTR;
