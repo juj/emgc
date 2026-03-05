@@ -67,9 +67,3 @@ void *gc_acquire_strong_ptr(void **weak_ptr_ptr __attribute__((nonnull)))
   *weak_ptr_ptr = 0;
   return 0;
 }
-
-int gc_weak_ptr_equals(void *weak_or_strong_ptr1, void *weak_or_strong_ptr2)
-{
-  if (weak_or_strong_ptr1 == weak_or_strong_ptr2) return 1;
-  return gc_acquire_strong_ptr(weak_or_strong_ptr1) == gc_acquire_strong_ptr(weak_or_strong_ptr2);
-}

@@ -39,8 +39,6 @@ void *gc_get_weak_ptr(void *strong_ptr);
 //    -> if strong_ptr_again is zero (GC freed the allocation), then weak_ptr will reset to zero as well.
 void *gc_acquire_strong_ptr(void **weak_ptr_ptr __attribute__((nonnull)));
 
-int gc_weak_ptr_equals(void *weak_or_strong_ptr1, void *weak_or_strong_ptr2);
-
 int gc_is_ptr(void *weak_or_strong_ptr);
 int gc_is_weak_ptr(void *weak_or_strong_ptr);
 int gc_is_strong_ptr(void *weak_or_strong_ptr);

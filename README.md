@@ -179,17 +179,15 @@ int main()
     data = 0;
 
     gc_collect(); // may free 'data', since only a weak reference to it remains.
-    if (gc_weak_ptr_equals(weak, 0))
+    if (gc_acquire_strong_ptr(&weak) == 0)
       printf("Weak pointer got GCd!");
 }
 ```
 
 Weak pointers have slightly different semantics to strong pointers:
- - Do not compare weak pointers against other pointers, **not even to null**. Instead use the function `gc_weak_ptr_equals(ptr1, ptr2);` where `ptr1` and `ptr2` may be weak or strong pointers, or null.
- - Do not type cast weak pointers to dereference them.
- - To dereference a weak pointer, it must be turned back to a strong pointer first by calling `gc_acquire_strong_ptr(&weak_ptr)`, where `weak_ptr` is a weak pointer. If the object pointed to by a weak pointer has been freed, the function returns null (and resets `weak_ptr` to zero as well).
- - To test if a pointer represents a weak pointer, call the function `gc_is_weak_ptr(ptr)`.
- - To test if a pointer represents a strong pointer, call the function `gc_is_strong_ptr(ptr)`.
+ - To access the object pointed by a weak pointer, it must be turned back to a strong pointer first by calling `gc_acquire_strong_ptr(&weak_ptr)`, where `weak_ptr` is a weak pointer. If the object pointed to by a weak pointer has been freed, the function returns null (and automatically resets `weak_ptr` to zero as well).
+ - To test if a pointer represents a weak pointer, call the function `gc_is_weak_ptr(weak_or_strong_ptr)`.
+ - To test if a pointer represents a strong pointer, call the function `gc_is_strong_ptr(weak_or_strong_ptr)`.
  - The null pointer is considered **both** a weak and a strong pointer.
 
 Note that unlike root and leaf properties that are properties of the allocation itself, weak vs strong pointers are a property of the pointer. A single GC allocation can have a combination of several strong and weak pointers pointing to it.
