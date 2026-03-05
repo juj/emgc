@@ -148,15 +148,15 @@ void *gc_calloc(size_t bytes)
 
 void *gc_calloc_root(size_t bytes)
 {
-  void *ptr = gc_malloc_root(bytes);
-  if (ptr) memset(ptr, 0, bytes);
+  void *ptr = gc_calloc(bytes);
+  if (ptr) gc_make_root(ptr);
   return ptr;
 }
 
 void *gc_calloc_leaf(size_t bytes)
 {
-  void *ptr = gc_malloc_leaf(bytes);
-  if (ptr) memset(ptr, 0, bytes);
+  void *ptr = gc_calloc(bytes);
+  if (ptr) gc_make_leaf(ptr);
   return ptr;
 }
 
