@@ -49,11 +49,11 @@ for m in modes:
         c += f.split(' ')
     print(' '.join(c))
     try:
-      subprocess.check_call(c)
+      subprocess.check_call(c, shell=True)
       if run_in_browser:
-        subprocess.check_call([bat_suffix('emrun'), 'a.html'])
+        subprocess.check_call([bat_suffix('emrun'), 'a.html'], shell=True)
       else:
-        subprocess.check_call(['node', 'a.js'])
+        subprocess.check_call(['node', 'a.js'], shell=True)
       passes += 1
     except Exception as e:
       print(str(e))
