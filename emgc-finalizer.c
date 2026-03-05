@@ -58,6 +58,8 @@ static void insert_finalizer(void *ptr, gc_finalizer finalizer)
 
 void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
 {
+  assert(ptr);
+  assert(gc_is_strong_ptr(ptr));
   uint32_t old_mask = finalizers_mask;
   if (2*num_finalizer_entries >= finalizers_mask)
   {
@@ -79,6 +81,7 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
 
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
+  assert(i != INVALID_INDEX);
   table[i] = (void*)((uintptr_t)table[i] | PTR_FINALIZER_BIT);
   GC_MALLOC_RELEASE();
 }
