@@ -88,6 +88,6 @@ void gc_unmake_leaf(void *ptr __attribute__((nonnull)))
 void *gc_malloc_leaf(size_t bytes)
 {
   void *ptr = gc_malloc(bytes);
-  gc_make_leaf(ptr);
+  if (ptr) gc_make_leaf(ptr);
   return ptr;
 }
