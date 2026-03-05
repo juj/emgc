@@ -7,7 +7,7 @@ static volatile uint8_t mt_lock = 0;
 #define GC_MALLOC_ACQUIRE() while (__sync_lock_test_and_set(&mt_lock, 1)) { while (mt_lock) { ; } } // nop
 #define GC_MALLOC_RELEASE() __sync_lock_release(&mt_lock)
 // Test code to ensure we have tight malloc acquire/release guards in place.
-#define ASSERT_GC_MALLOC_IS_ACQUIRED() assert(mt_lock == 1)
+#define ASSERT_GC_MALLOC_IS_ACQUIRED() assert(__atomic_load_n(&mt_lock, __ATOMIC_SEQ_CST) == 1)
 #define GC_CHECKPOINT_KEEPALIVE EMSCRIPTEN_KEEPALIVE __attribute__((noinline))
 static uint8_t  cas_u8( _Atomic(uint8_t) *addr,  uint8_t prev,  uint8_t new)  { __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return prev; }
 static uint32_t cas_u32(_Atomic(uint32_t) *addr, uint32_t prev, uint32_t new) { __c11_atomic_compare_exchange_strong(addr, &prev, new, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return prev; }
