@@ -136,8 +136,13 @@ void *gc_malloc(size_t bytes)
 
 void *gc_calloc(size_t bytes)
 {
-  void *ptr = gc_malloc(bytes);
-  if (ptr) memset(ptr, 0, bytes);
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
+  void *ptr = calloc(bytes, 1);
+  if (!ptr) return 0;
+  GC_MALLOC_ACQUIRE();
+  if (2*num_table_entries >= table_mask) realloc_table();
+  table_insert(ptr);
+  GC_MALLOC_RELEASE();
   return ptr;
 }
 
