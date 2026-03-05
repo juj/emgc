@@ -36,14 +36,15 @@ passes = 0
 for m in modes:
   for t in tests:
     c = cmd + m + [t]
-    run_in_browser = '// run: browser' in open(t, 'r').read()
+    test_code = open(t, 'r').read()
+    run_in_browser = '// run: browser' in test_code
     if run_in_browser and skip_browser_tests:
       print(f'--skip-browser-tests: Skipping browser test {c}')
       continue
 
 #    if run_in_browser:
 #      c += ['--emrun']
-    flags = re.findall(r"// flags: (.*)", open(t, 'r').read())
+    flags = re.findall(r"// flags: (.*)", test_code)
     if len(flags) > 0:
       for f in flags:
         c += f.split(' ')
