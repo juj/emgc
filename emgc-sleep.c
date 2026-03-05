@@ -26,11 +26,11 @@ void gc_temporarily_leave_fence()
   int pos = orphan_stack_size;
   for(int i = 0; i < orphan_stack_size; ++i)
     if (!orphan_stacks[i].start) { pos = i; break; }
-  if (pos >= orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = orphan_stack_cap*2 + 1)*sizeof(range));
+  if (pos == orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = orphan_stack_cap*2 + 1)*sizeof(range));
   orphan_stacks[pos].start = (void*)emscripten_stack_get_current();
   orphan_stacks[pos].end = (void*)stack_top;
   my_orphan_stack_pos = pos++;
-  if (pos >= orphan_stack_size) ++orphan_stack_size;
+  if (pos == orphan_stack_size) ++orphan_stack_size;
   gc_release_lock(&orphan_stack_lock);
 
   gc_participate_to_garbage_collection();
@@ -47,8 +47,9 @@ void gc_return_to_fence()
   gc_participate_to_garbage_collection();
 
   gc_acquire_lock(&orphan_stack_lock);
-  orphan_stacks[my_orphan_stack_pos].start = 0;
-  if (my_orphan_stack_pos >= orphan_stack_size) --orphan_stack_size;
+  orphan_stacks[my_orphan_stack_pos].start = orphan_stacks[my_orphan_stack_pos].end = 0;
+  // Opportunistically shrink back the total orphan stack length
+  while(orphan_stack_size > 0 && orphan_stacks[orphan_stack_size-1].start == 0) --orphan_stack_size;
   gc_release_lock(&orphan_stack_lock);
 #endif
 }
