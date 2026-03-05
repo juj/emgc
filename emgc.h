@@ -46,9 +46,6 @@ int gc_is_root(void *strong_ptr); // Must be called with a strong pointer.
 
 void *gc_ptr_base(void *interior_ptr); // Given a pointer to the interior of an object, returns the base address of the allocation.
 
-typedef void (*gc_finalizer)(void *ptr);
-void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
-
 typedef void *(*gc_mutator_func)(void *user1, void *user2);
 void *gc_enter_fence_cb(gc_mutator_func mutator_callback, void *user1, void *user2);
 
