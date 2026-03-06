@@ -152,8 +152,7 @@ void *gc_calloc(size_t bytes)
   void *ptr = calloc(bytes, 1);
   if (!ptr) return 0;
   GC_MALLOC_ACQUIRE();
-  if (2*num_table_entries >= table_mask) realloc_table();
-  table_insert(ptr);
+  record_gc_malloc(ptr);
   GC_MALLOC_RELEASE();
   return ptr;
 }
