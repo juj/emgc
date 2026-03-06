@@ -149,7 +149,9 @@ static void finish_multithreaded_marking()
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
 
-static char sweep_worker_stack[256];
+// N.b. this stack only needs to contain LLVM data stack. Wasm VM stack is separate,
+// so this stack can be much smaller.
+static char sweep_worker_stack[2048];
 static emscripten_wasm_worker_t sweep_worker;
 
 static void sweep_worker_main()
