@@ -174,6 +174,7 @@ void *gc_calloc_leaf(size_t bytes)
 void gc_free(void *ptr)
 {
   if (!ptr) return;
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   assert(i != INVALID_INDEX);
