@@ -52,7 +52,7 @@ void *gc_enter_fence_cb(gc_mutator_func mutator_callback, void *user1, void *use
 void gc_temporarily_leave_fence(void);
 void gc_return_to_fence(void);
 
-void gc_sleep(double msecs);
+void gc_sleep(double nsecs);
 // Wait functions return: 0: ok, 1: not-equal, 2: timed-out
 int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t nsecs);
 int gc_wait64(void *addr __attribute__((nonnull)), uint64_t expected, int64_t nsecs);
