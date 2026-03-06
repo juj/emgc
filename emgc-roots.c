@@ -3,6 +3,7 @@
 
 static void **roots;
 static uint32_t num_roots, roots_mask;
+static emscripten_lock_t roots_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 
 static uint32_t hash_root(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & roots_mask; }
 
@@ -19,14 +20,17 @@ int gc_is_root(void *ptr)
 {
   if (!ptr) return 0;
   assert(!gc_is_weak_ptr(ptr));
+  gc_acquire_lock(&roots_lock);
   for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
     if (roots[i] == ptr) return 1;
+  gc_release_lock(&roots_lock);
   return 0;
 }
 
 void gc_make_root(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
+  gc_acquire_lock(&roots_lock);
   uint32_t old_mask = roots_mask;
   if (2*num_roots >= roots_mask)
   {
@@ -44,18 +48,21 @@ void gc_make_root(void *ptr __attribute__((nonnull)))
     }
   }
   insert_root(ptr);
+  gc_release_lock(&roots_lock);
 }
 
 void gc_unmake_root(void *ptr __attribute__((nonnull)))
 {
   if (!roots) return;
   assert(ptr);
+  gc_acquire_lock(&roots_lock);
   for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
     if (roots[i] == ptr)
     {
       roots[i] = (void*)1;
-      return;
+      break;
     }
+  gc_release_lock(&roots_lock);
 }
 
 void *gc_malloc_root(size_t bytes)

@@ -117,14 +117,18 @@ static void wait_for_all_threads_finished_marking()
 
 static void gc_acquire_lock(emscripten_lock_t *lock)
 {
+#ifdef __EMSCRIPTEN_SHARED_MEMORY__
   emscripten_lock_t val;
   do val = emscripten_atomic_cas_u32((void*)lock, 0, 1);
   while(val);
+#endif
 }
 
 static void gc_release_lock(emscripten_lock_t *lock)
 {
+#ifdef __EMSCRIPTEN_SHARED_MEMORY__
   emscripten_atomic_store_u32((void*)lock, 0);
+#endif
 }
 
 static emscripten_semaphore_t sweep_command = EMSCRIPTEN_SEMAPHORE_T_STATIC_INITIALIZER(0);
