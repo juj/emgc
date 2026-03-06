@@ -95,6 +95,7 @@ void *gc_get_weak_ptr(void *strong_ptr)
 
     weak_ptr_map *old_weak_ptrs = weak_ptrs;
     weak_ptrs = (weak_ptr_map*)calloc(weak_ptrs_mask+1, sizeof(weak_ptr_map));
+    assert(weak_ptrs);
     num_weak_ptrs_entries = 0;
 
     if (old_weak_ptrs)
