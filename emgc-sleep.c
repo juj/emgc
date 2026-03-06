@@ -70,6 +70,7 @@ static void mark_orphaned_stacks()
 
 static void gc_uninterrupted_sleep(double nsecs)
 {
+  assert(nsecs >= 0); // negative timeouts, or -1 for "infinite timeout" are not allowed here.
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (emscripten_current_thread_is_wasm_worker()) { int32_t dummy = 0; __builtin_wasm_memory_atomic_wait32(&dummy, 0, nsecs); }
   else
@@ -80,13 +81,14 @@ static void gc_uninterrupted_sleep(double nsecs)
 // TODO: attribute(noinline) doesn't seem to prevent this function from not being inlined. Adding EMSCRIPTEN_KEEPALIVE seems to help, but is excessive.
 void EMSCRIPTEN_KEEPALIVE __attribute__((noinline)) gc_sleep(double nsecs)
 {
+  assert(nsecs >= 0); // negative timeouts, or -1 for "infinite timeout" are not allowed here.
   // Sliced sleep: suffers from performance problems. :(
 //  for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) gc_uninterrupted_sleep(100);
 
   // Orphaned stack sleep: let another thread scan our stack while we are sleeping.
-  gc_temporarily_leave_fence();
+  if (nsecs != 0) gc_temporarily_leave_fence();
   gc_uninterrupted_sleep(nsecs);
-  gc_return_to_fence();
+  if (nsecs != 0) gc_return_to_fence();
 }
 
 int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t nsecs)
@@ -94,9 +96,9 @@ int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t ns
   if (*(int32_t*)addr != expected) return 1; // not-equal
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
-  if (nsecs > 100*1000) gc_temporarily_leave_fence();
-  int ret = __builtin_wasm_memory_atomic_wait32((int32_t*)addr, expected, nsecs);
-  if (nsecs > 100*1000) gc_return_to_fence();
+  if (nsecs != 0) gc_temporarily_leave_fence();
+  int ret = __builtin_wasm_memory_atomic_wait32((int32_t*)addr, expected, nsecs); // nsecs == -1 -> infinite timeout
+  if (nsecs != 0) gc_return_to_fence();
   return ret;
 #else
   return 2; // timed-out
@@ -108,9 +110,9 @@ int gc_wait64(void *addr __attribute__((nonnull)), uint64_t expected, int64_t ns
   if (*(int64_t*)addr != expected) return 1; // not-equal
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
-  if (nsecs > 100*1000) gc_temporarily_leave_fence();
-  int ret = __builtin_wasm_memory_atomic_wait64((int64_t*)addr, expected, nsecs);
-  if (nsecs > 100*1000) gc_return_to_fence();
+  if (nsecs != 0) gc_temporarily_leave_fence();
+  int ret = __builtin_wasm_memory_atomic_wait64((int64_t*)addr, expected, nsecs); // nsecs == -1 -> infinite timeout
+  if (nsecs != 0) gc_return_to_fence();
   return ret;
 #else
   return 2; // timed-out
