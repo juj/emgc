@@ -124,12 +124,9 @@ void *gc_get_weak_ptr(void *strong_ptr)
   i = table_find(ref_block);
   assert(i != INVALID_INDEX);
   table[i] = (void*)((uintptr_t)table[i] | PTR_WEAK_BIT | PTR_LEAF_BIT);
-  // Record the strong ptr -> weak ptr mapping.
-  insert_weak_ptr(strong_ptr, ref_block);
+  insert_weak_ptr(strong_ptr, ref_block); // Record the strong ptr -> weak ptr mapping.
+  gc_make_root(ref_block); // Finally pin the weak pointer as a root allocation.
   GC_MALLOC_RELEASE();
-
-  // Pin the weak pointer as a root allocation before returning.
-  gc_make_root(ref_block);
 
   return ref_block;
 }
