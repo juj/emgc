@@ -18,7 +18,7 @@ static void insert_root(void *ptr __attribute__((nonnull)))
 
 int gc_is_root(void *ptr)
 {
-  if (!ptr) return 0;
+  if (!ptr || !roots) return 0;
   assert(!gc_is_weak_ptr(ptr));
   gc_acquire_lock(&roots_lock);
   int is_root = 0;
