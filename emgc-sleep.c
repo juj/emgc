@@ -97,7 +97,7 @@ int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t ns
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (nsecs != 0) gc_temporarily_leave_fence();
-  int ret = __builtin_wasm_memory_atomic_wait32((int32_t*)addr, expected, nsecs); // nsecs == -1 -> infinite timeout
+  int ret = __builtin_wasm_memory_atomic_wait32((int32_t*)addr, expected, nsecs); // nsecs<0 means infinite timeout
   if (nsecs != 0) gc_return_to_fence();
   return ret;
 #else
@@ -111,7 +111,7 @@ int gc_wait64(void *addr __attribute__((nonnull)), uint64_t expected, int64_t ns
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (nsecs != 0) gc_temporarily_leave_fence();
-  int ret = __builtin_wasm_memory_atomic_wait64((int64_t*)addr, expected, nsecs); // nsecs == -1 -> infinite timeout
+  int ret = __builtin_wasm_memory_atomic_wait64((int64_t*)addr, expected, nsecs); // nsecs<0 means infinite timeout
   if (nsecs != 0) gc_return_to_fence();
   return ret;
 #else
