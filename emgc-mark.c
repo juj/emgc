@@ -81,7 +81,6 @@ static void mark(void *ptr, size_t bytes)
 #else
 static void mark(void *ptr, size_t bytes)
 {
-  uint32_t i;
   assert(IS_ALIGNED(ptr, sizeof(void*)));
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; ++p)
     mark_maybe_ptr(*p);
