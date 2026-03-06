@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 static void **roots;
-static uint32_t num_roots, roots_mask;
+static uint32_t num_roots_slots_populated, roots_mask;
 static emscripten_lock_t roots_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZER;
 
 static uint32_t hash_root(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & roots_mask; }
@@ -12,7 +12,7 @@ static void insert_root(void *ptr __attribute__((nonnull)))
   assert(ptr);
   uint32_t i = hash_root(ptr);
   while((uintptr_t)roots[i] > 1) i = (i+1) & roots_mask;
-  if ((uintptr_t)roots[i] != 1) ++num_roots;
+  if ((uintptr_t)roots[i] != 1) ++num_roots_slots_populated;
   roots[i] = ptr;
 }
 
@@ -37,14 +37,14 @@ void gc_make_root(void *ptr __attribute__((nonnull)))
   assert(ptr);
   gc_acquire_lock(&roots_lock);
   uint32_t old_mask = roots_mask;
-  if (2*num_roots >= roots_mask)
+  if (2*num_roots_slots_populated >= roots_mask)
   {
     roots_mask = (roots_mask << 1) | 1;
 
     void **old_roots = roots;
     roots = (void**)calloc(roots_mask+1, sizeof(void*));
     assert(roots);
-    num_roots = 0;
+    num_roots_slots_populated = 0;
     if (old_roots)
     {
       for(uint32_t i = 0; i <= old_mask; ++i)
