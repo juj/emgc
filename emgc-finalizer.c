@@ -5,7 +5,7 @@ typedef struct finalizer_map
 } finalizer_map;
 
 static finalizer_map *finalizers;
-static uint32_t num_finalizers, num_finalizer_entries, finalizers_mask, num_finalizers_marked;
+static uint32_t num_finalizers, num_finalizer_slots_populated, finalizers_mask, num_finalizers_marked;
 
 static uint32_t hash_finalizer(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & finalizers_mask; }
 
@@ -50,7 +50,7 @@ static void insert_finalizer(void *ptr, gc_finalizer finalizer)
   while((uintptr_t)finalizers[i].ptr > 1 && finalizers[i].ptr != ptr)
     i = (i+1) & finalizers_mask;
 
-  if (!finalizers[i].ptr) ++num_finalizer_entries;
+  if (!finalizers[i].ptr) ++num_finalizer_slots_populated;
   if (finalizers[i].ptr != ptr)
   {
     ++num_finalizers;
@@ -65,14 +65,14 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
   assert(gc_is_strong_ptr(ptr));
   GC_MALLOC_ACQUIRE();
   uint32_t old_mask = finalizers_mask;
-  if (2*num_finalizer_entries >= finalizers_mask)
+  if (2*num_finalizer_slots_populated >= finalizers_mask)
   {
     finalizers_mask = (finalizers_mask << 1) | 1;
 
     finalizer_map *old_finalizers = finalizers;
     finalizers = (finalizer_map*)calloc(finalizers_mask+1, sizeof(finalizer_map));
     assert(finalizers);
-    num_finalizer_entries = 0;
+    num_finalizer_slots_populated = 0;
 
     if (old_finalizers)
     {
