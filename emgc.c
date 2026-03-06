@@ -253,7 +253,12 @@ void gc_collect()
   mark_current_thread_stack();
   mark_orphaned_stacks();
 
-  if (roots) mark((void*)roots, (roots_mask+1)*sizeof(void*));
+  if (roots)
+  {
+    gc_acquire_lock(&roots_lock);
+    mark((void*)roots, (roots_mask+1)*sizeof(void*));
+    gc_release_lock(&roots_lock);
+  }
 
 #if defined(__EMSCRIPTEN_SHARED_MEMORY__)
   finish_multithreaded_marking(); // In mt builds, delegate sweeping (and the active gc lock) to a sweep worker.
