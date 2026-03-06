@@ -101,9 +101,9 @@ static void realloc_table()
 {
   ASSERT_GC_MALLOC_IS_ACQUIRED();
   uint32_t old_mask = table_mask;
-  if (2*num_allocs >= table_mask) table_mask <<= 1;
-  else if (((8*num_allocs)|127) < table_mask) table_mask = (1 << (32-__builtin_clz(2*num_allocs))) - 1;
-  table_mask |= 127;
+  if (2*num_allocs >= table_mask) table_mask <<= 1; // grow table
+  else if (((8*num_allocs)|127) < table_mask) table_mask = (1 << (32-__builtin_clz((2*num_allocs)|1))) - 1; // shrink table
+  table_mask |= 127; // Minimum table size is 128 entries.
 
   if (old_mask != table_mask)
   {
