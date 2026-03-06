@@ -18,6 +18,8 @@ static uint32_t find_finalizer_index(void *ptr)
 
 static void find_and_run_a_finalizer()
 {
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
+
   for(uint32_t i = 0, offset; i <= table_mask; i += 64)
     for(uint64_t b = ((uint64_t*)used_table)[i>>6] & ~((uint64_t*)mark_table)[i>>6]; b; b ^= (1ull<<offset))
     {
@@ -29,8 +31,13 @@ static void find_and_run_a_finalizer()
         assert(f != INVALID_INDEX);
         void *ptr = finalizers[f].ptr;
         finalizers[f].ptr = (void*)1;
-        finalizers[f].finalizer(ptr);
+        gc_finalizer finalizer_to_run = finalizers[f].finalizer;
         --num_finalizers;
+        // Call the finalizer without GC lock present, so that the finalizer
+        // function can perform GC allocations if necessary.
+        GC_MALLOC_RELEASE();
+        finalizer_to_run(ptr);
+        GC_MALLOC_ACQUIRE();
         return; // In this sweep, we are not going to do anything else.
       }
     }
