@@ -17,6 +17,8 @@ again:
 
 static void mark_maybe_ptr(void *ptr)
 {
+  if (!gc_looks_like_ptr((uintptr_t)ptr)) return; // Early-out if the ptr does not look like a managed pointer at all.
+
   uint32_t i = table_find(ptr);
   if (i == INVALID_INDEX) return;
   uint8_t bit = ((uint8_t)1 << (i&7));
@@ -45,17 +47,15 @@ again_head:
 #else
 static void mark_maybe_ptr(void *ptr)
 {
-  // N.b. performance benchmark shows that marking performance would be ~doubled by omitting this check, but that could give false positives?
-  if (!gc_looks_like_ptr((uintptr_t)ptr)) return;
+  if (!gc_looks_like_ptr((uintptr_t)ptr)) return; // Early-out if the ptr does not look like a managed pointer at all.
 
-  for(uint32_t i = hash_ptr(ptr); table[i]; i = (i+1) & table_mask)
-    if (REMOVE_FLAG_BITS(table[i]) == ptr)
-    {
-      if (BITVEC_GET(mark_table, i)) return;
-      BITVEC_SET(mark_table, i);
-      num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
-      if (!HAS_LEAF_BIT(table[i])) mark(ptr, malloc_usable_size(ptr));
-    }
+  uint32_t i = table_find(ptr);
+  if (i != INVALID_INDEX && !BITVEC_GET(mark_table, i))
+  {
+    BITVEC_SET(mark_table, i);
+    num_finalizers_marked += HAS_FINALIZER_BIT(table[i]);
+    if (!HAS_LEAF_BIT(table[i])) mark(ptr, malloc_usable_size(ptr));
+  }
 }
 #endif
 
