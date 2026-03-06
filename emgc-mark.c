@@ -60,6 +60,15 @@ static void mark_maybe_ptr(void *ptr)
 #endif
 
 #ifdef __wasm_simd128__
+// This function performs a memory load that can deliberately go out of bounds for performance - in WebAssembly that is
+// benign, as long as the OOB is not out of the Wasm Memory altogether (which we ensure outside by over-reserving the
+// Wasm heap). We do this for conservative marking, so accessing some random data beyond the ptr end is not a problem.
+__attribute__((no_sanitize("address")))
+v128_t wasm_v128_out_of_bounds_load(const void *ptr)
+{
+  return wasm_v128_load(ptr);
+}
+
 static void mark(void *ptr, size_t bytes)
 {
   assert(IS_ALIGNED(ptr, sizeof(void*)));
@@ -71,7 +80,7 @@ static void mark(void *ptr, size_t bytes)
 
   for(void **p = (void**)ptr; (uintptr_t)p < (uintptr_t)ptr + bytes; p += 4)
   {
-    v128_t ptrs = wasm_i32x4_sub(wasm_v128_load(p), mem_start); // Always aligned load as per managed allocations and std::max_align_t being 16 bytes.
+    v128_t ptrs = wasm_i32x4_sub(wasm_v128_out_of_bounds_load(p), mem_start); // Always aligned load as per managed allocations and std::max_align_t being 16 bytes.
     v128_t cmp = wasm_v128_and(wasm_u32x4_lt(ptrs, mem_size), wasm_i32x4_eq(wasm_v128_and(ptrs, align_mask), zero));
     if (wasm_v128_any_true(cmp))
       for(uint32_t bits = wasm_i32x4_bitmask(cmp), offset; bits; bits ^= 1 << offset)
