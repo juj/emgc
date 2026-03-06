@@ -24,7 +24,7 @@ void gc_temporarily_leave_fence()
 
   gc_acquire_lock(&orphan_stack_lock);
   int i = 0;
-  while(i < orphan_stack_size && orphan_stacks[i].start == 0)
+  while(i < orphan_stack_size && orphan_stacks[i].start != 0)
     ++i;
   if (i == orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = (orphan_stack_cap*2 + 1)|31)*sizeof(range));
   if (i == orphan_stack_size) ++orphan_stack_size;
