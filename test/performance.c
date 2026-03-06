@@ -14,7 +14,7 @@ int main()
       large[i] = rand();
   PIN(&large);
   double t0 = emscripten_performance_now();
-  gc_collect(); // will not scan contents of 'string', so the second allocation should be collected.
+  gc_collect();
   double t1 = emscripten_performance_now();
   printf("gc_collect() took %f msecs. i.e. marked %f MB/second.\n", t1-t0, size * 1000.0 / ((t1-t0)*1024*1024));
 }
