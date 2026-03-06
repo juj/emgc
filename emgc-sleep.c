@@ -23,14 +23,14 @@ void gc_temporarily_leave_fence()
   if (!this_thread_accessing_managed_state) return;
 
   gc_acquire_lock(&orphan_stack_lock);
-  int pos = orphan_stack_size;
-  for(int i = 0; i < orphan_stack_size; ++i)
-    if (!orphan_stacks[i].start) { pos = i; break; }
-  if (pos == orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = orphan_stack_cap*2 + 1)*sizeof(range));
-  orphan_stacks[pos].start = (void*)emscripten_stack_get_current();
-  orphan_stacks[pos].end = (void*)stack_top;
-  my_orphan_stack_pos = pos++;
-  if (pos == orphan_stack_size) ++orphan_stack_size;
+  int i = 0;
+  while(i < orphan_stack_size && orphan_stacks[i].start == 0)
+    ++i;
+  if (i == orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = orphan_stack_cap*2 + 1)*sizeof(range));
+  if (i == orphan_stack_size) ++orphan_stack_size;
+  orphan_stacks[i].start = (void*)emscripten_stack_get_current();
+  orphan_stacks[i].end = (void*)stack_top;
+  my_orphan_stack_pos = i;
   gc_release_lock(&orphan_stack_lock);
 
   gc_participate_to_garbage_collection();
