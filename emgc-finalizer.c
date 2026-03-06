@@ -89,3 +89,37 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
   table[i] = (void*)((uintptr_t)table[i] | PTR_FINALIZER_BIT);
   GC_MALLOC_RELEASE();
 }
+
+gc_finalizer gc_get_finalizer(void *ptr)
+{
+  assert(ptr);
+  assert(gc_is_strong_ptr(ptr));
+  GC_MALLOC_ACQUIRE();
+  gc_finalizer finalizer = 0;
+  uint32_t i = find_finalizer_index(ptr);
+  if (i != INVALID_INDEX)
+    finalizer = finalizers[i].finalizer;
+  GC_MALLOC_RELEASE();
+  return finalizer;
+}
+
+static void remove_finalizer(void *ptr)
+{
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
+
+  uint32_t i = find_finalizer_index(ptr);
+  if (i != INVALID_INDEX && (uintptr_t)finalizers[i].ptr > 1)
+  {
+    finalizers[i].ptr = (void*)1;
+    --num_finalizers;
+  }
+}
+
+void gc_remove_finalizer(void *ptr __attribute__((nonnull)))
+{
+  assert(ptr);
+  assert(gc_is_strong_ptr(ptr));
+  GC_MALLOC_ACQUIRE();
+  remove_finalizer(ptr);
+  GC_MALLOC_RELEASE();
+}

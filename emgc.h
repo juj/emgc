@@ -9,6 +9,8 @@ extern "C" {
 
 void *gc_malloc(size_t bytes); // Allocates memory with unspecified (dirty) initial contents.
 void *gc_calloc(size_t bytes); // Allocates zero-initialized memory.
+
+// Manually frees an allocation. If the allocation had a finalizer, it is *not* called.
 void gc_free(void *ptr);
 
 void *gc_malloc_root(size_t bytes);
@@ -25,7 +27,9 @@ void gc_collect(void);
 void gc_collect_when_stack_is_empty(void);
 
 typedef void (*gc_finalizer)(void *ptr);
-void gc_register_finalizer(void *ptr, gc_finalizer finalizer);
+void gc_register_finalizer(void *ptr __attribute__((nonnull)), gc_finalizer finalizer);
+gc_finalizer gc_get_finalizer(void *ptr __attribute__((nonnull)));
+void gc_remove_finalizer(void *ptr __attribute__((nonnull)));
 
 void *gc_get_weak_ptr(void *strong_ptr);
 // Given a weak pointer, acquire the referenced strong pointer.

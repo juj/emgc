@@ -180,6 +180,7 @@ void gc_free(void *ptr)
   assert(i != INVALID_INDEX);
   table_free(i);
   gc_unmake_root(ptr);
+  remove_finalizer(ptr);
   GC_MALLOC_RELEASE();
 }
 
