@@ -113,10 +113,10 @@ void *gc_get_weak_ptr(void *strong_ptr)
   i = table_find(ref_block);
   assert(i != INVALID_INDEX);
   table[i] = (void*)((uintptr_t)table[i] | PTR_WEAK_BIT | PTR_LEAF_BIT);
-  GC_MALLOC_RELEASE();
-
   // Record the strong ptr -> weak ptr mapping.
   insert_weak_ptr(strong_ptr, ref_block);
+  GC_MALLOC_RELEASE();
+
   return ref_block;
 }
 
