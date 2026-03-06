@@ -37,6 +37,7 @@ static void find_and_run_a_finalizer()
 
 static void insert_finalizer(void *ptr, gc_finalizer finalizer)
 {
+  assert(ptr);
   uint32_t i = hash_finalizer(ptr);
   while((uintptr_t)finalizers[i].ptr > 1 && finalizers[i].ptr != ptr)
     i = (i+1) & finalizers_mask;
