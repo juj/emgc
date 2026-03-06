@@ -84,10 +84,9 @@ void EMSCRIPTEN_KEEPALIVE __attribute__((noinline)) gc_sleep(double nsecs)
 //  for(double end = emscripten_performance_now() + nsecs/1000000.0; emscripten_performance_now() < end;) gc_uninterrupted_sleep(100);
 
   // Orphaned stack sleep: let another thread scan our stack while we are sleeping.
-  // if we're sleeping more than 0.1 msecs, then give the stack of the current thread for someone else to scan, and only then sleep.
-  if (nsecs > 100*1000) gc_temporarily_leave_fence();
+  gc_temporarily_leave_fence();
   gc_uninterrupted_sleep(nsecs);
-  if (nsecs > 100*1000) gc_return_to_fence();
+  gc_return_to_fence();
 }
 
 int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t nsecs)
