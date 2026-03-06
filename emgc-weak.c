@@ -53,6 +53,7 @@ int gc_is_weak_ptr(void *ptr)
 {
   if (!ptr) return 0;
   if (!gc_looks_like_ptr((uintptr_t)ptr)) return 0;
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   int is_weak = (i != INVALID_INDEX && HAS_WEAK_BIT(table[i]));
@@ -64,6 +65,7 @@ int gc_is_strong_ptr(void *ptr)
 {
   if (!ptr) return 0;
   if (!gc_looks_like_ptr((uintptr_t)ptr)) return 0;
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   int is_strong = (i != INVALID_INDEX && !HAS_WEAK_BIT(table[i]));
@@ -77,6 +79,7 @@ void *gc_get_weak_ptr(void *strong_ptr)
   assert(!gc_is_weak_ptr(strong_ptr));
  
   // See if there already exists a weak pointer reference block for this allocation.
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   GC_MALLOC_ACQUIRE(); // acquire lock early, so that parallel calls to this function won't race to allocate.
   uint32_t i = find_weak_ptr_index(strong_ptr);
   if (i != INVALID_INDEX)
@@ -136,6 +139,7 @@ void *gc_acquire_strong_ptr(void **weak_ptr_ptr __attribute__((nonnull)))
   assert(weak_ptr_ptr);
   void *weak_ptr = *weak_ptr_ptr;
   if (!weak_ptr) return 0;
+  ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   assert(gc_is_weak_ptr(weak_ptr));
 
   // We need to read the weak->strong reference block while holding the malloc
