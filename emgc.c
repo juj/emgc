@@ -128,14 +128,20 @@ static void realloc_table()
   }
 }
 
+static void record_gc_malloc(void *ptr)
+{
+  ASSERT_GC_MALLOC_IS_ACQUIRED();
+  if (2*num_table_entries >= table_mask) realloc_table();
+  table_insert(ptr);
+}
+
 void *gc_malloc(size_t bytes)
 {
   ASSERT_GC_FENCED_ACCESS_IS_ACQUIRED();
   void *ptr = malloc(bytes);
   if (!ptr) return 0;
   GC_MALLOC_ACQUIRE();
-  if (2*num_table_entries >= table_mask) realloc_table();
-  table_insert(ptr);
+  record_gc_malloc(ptr);
   GC_MALLOC_RELEASE();
   return ptr;
 }

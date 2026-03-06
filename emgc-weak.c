@@ -77,13 +77,24 @@ void *gc_get_weak_ptr(void *strong_ptr)
   assert(!gc_is_weak_ptr(strong_ptr));
  
   // See if there already exists a weak pointer reference block for this allocation.
+  GC_MALLOC_ACQUIRE(); // acquire lock early, so that parallel calls to this function won't race to allocate.
   uint32_t i = find_weak_ptr_index(strong_ptr);
-  if (i != INVALID_INDEX) return weak_ptrs[i].weak_ptr; // Return the already existing block if so.
+  if (i != INVALID_INDEX)
+  {
+    void *weak_ptr = weak_ptrs[i].weak_ptr;
+    GC_MALLOC_RELEASE();
+    return weak_ptr; // Return the already existing block if so.
+  }
 
-  // Allocate a reference block to hold the strong ptr. It must be a root allocation,
-  // so that it is safe to refer to it from the weak_ptr_map table.
-  void **ref_block = (void**)gc_malloc_root(sizeof(void*));
-  if (!ref_block) return 0;
+  // Allocate a reference block to hold the strong ptr -> weak ptr association.
+  void **ref_block = (void**)malloc(sizeof(void*));
+  if (!ref_block)
+  {
+    GC_MALLOC_RELEASE();
+    return 0;
+  }
+
+  record_gc_malloc(ref_block);
 
   // Store the strong pointer to the allocated reference block.
   *ref_block = strong_ptr;
@@ -110,13 +121,15 @@ void *gc_get_weak_ptr(void *strong_ptr)
   // Mark the reference block as a weak pointer and as a leaf (don't scan contents).
   // The leaf mark is what makes this reference block a weak reference to the
   // allocation.
-  GC_MALLOC_ACQUIRE();
   i = table_find(ref_block);
   assert(i != INVALID_INDEX);
   table[i] = (void*)((uintptr_t)table[i] | PTR_WEAK_BIT | PTR_LEAF_BIT);
   // Record the strong ptr -> weak ptr mapping.
   insert_weak_ptr(strong_ptr, ref_block);
   GC_MALLOC_RELEASE();
+
+  // Pin the weak pointer as a root allocation before returning.
+  gc_make_root(ref_block);
 
   return ref_block;
 }
