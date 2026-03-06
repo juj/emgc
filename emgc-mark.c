@@ -29,7 +29,7 @@ again_bit:
   uint8_t actual = cas_u8(marks, old, old | bit);
   if (old != actual) { old = actual; goto again_bit; } // Some other bit in this byte got flipped by another thread, retry marking this.
 
-  if (HAS_FINALIZER_BIT(table[i])) __c11_atomic_fetch_add((_Atomic uint32_t*)&num_finalizers_marked, 1, __ATOMIC_SEQ_CST);
+  if (HAS_FINALIZER_BIT(table[i])) emscripten_atomic_add_u32(&num_finalizers_marked, 1);
   if (!HAS_LEAF_BIT(table[i]))
   {
     uint32_t head = producer_head;
