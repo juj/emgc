@@ -42,12 +42,6 @@ static void insert_finalizer(void *ptr, gc_finalizer finalizer)
   while((uintptr_t)finalizers[i].ptr > 1 && finalizers[i].ptr != ptr)
     i = (i+1) & finalizers_mask;
 
-  if (!ptr)
-  {
-    if (!finalizers[i].ptr) return;
-    ptr = (void*)1;
-  }
-
   if (!finalizers[i].ptr) ++num_finalizer_entries;
   if (finalizers[i].ptr != ptr)
   {
