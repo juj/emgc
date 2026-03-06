@@ -11,8 +11,9 @@ static uint32_t hash_to_weak_ptr_map(void *strong_ptr) { return (uint32_t)((uint
 
 static uint32_t find_weak_ptr_index(void *strong_ptr)
 {
-  for(uint32_t i = hash_to_weak_ptr_map(strong_ptr); weak_ptrs[i].strong_ptr; i = (i+1) & weak_ptrs_mask)
-    if (weak_ptrs[i].strong_ptr == strong_ptr) return i;
+  if (weak_ptrs)
+    for(uint32_t i = hash_to_weak_ptr_map(strong_ptr); weak_ptrs[i].strong_ptr; i = (i+1) & weak_ptrs_mask)
+      if (weak_ptrs[i].strong_ptr == strong_ptr) return i;
   return INVALID_INDEX;
 }
 
@@ -37,7 +38,6 @@ static void insert_weak_ptr(void *strong_ptr, void *weak_ptr)
 static void remove_weak_ptr(void *strong_ptr)
 {
   assert(strong_ptr);
-  if (!weak_ptrs) return; // The whole program has no weak pointers, so the weak ptr table is not even allocated.
   uint32_t i = find_weak_ptr_index(strong_ptr);
   if (i == INVALID_INDEX) return; // There was no strong->weak link to this allocation.
   assert(weak_ptrs[i].strong_ptr == strong_ptr);
