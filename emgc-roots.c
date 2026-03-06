@@ -21,10 +21,15 @@ int gc_is_root(void *ptr)
   if (!ptr) return 0;
   assert(!gc_is_weak_ptr(ptr));
   gc_acquire_lock(&roots_lock);
+  int is_root = 0;
   for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
-    if (roots[i] == ptr) return 1;
+    if (roots[i] == ptr)
+    {
+      is_root = 1;
+      break;
+    }
   gc_release_lock(&roots_lock);
-  return 0;
+  return is_root;
 }
 
 void gc_make_root(void *ptr __attribute__((nonnull)))
