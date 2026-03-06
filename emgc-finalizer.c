@@ -108,6 +108,9 @@ static void remove_finalizer(void *ptr)
 {
   ASSERT_GC_MALLOC_IS_ACQUIRED();
 
+  // N.b. ptr may not be a valid allocation anymore, but may
+  // have been just freed by the caller. Caller is responsible
+  // for updating the managed allocation table PTR_FINALIZER_BIT.
   uint32_t i = find_finalizer_index(ptr);
   if (i != INVALID_INDEX && (uintptr_t)finalizers[i].ptr > 1)
   {
@@ -122,5 +125,8 @@ void gc_remove_finalizer(void *ptr __attribute__((nonnull)))
   assert(gc_is_strong_ptr(ptr));
   GC_MALLOC_ACQUIRE();
   remove_finalizer(ptr);
+  uint32_t i = table_find(ptr);
+  assert(i != INVALID_INDEX);
+  table[i] = (void*)((uintptr_t)table[i] & ~PTR_FINALIZER_BIT);
   GC_MALLOC_RELEASE();
 }
