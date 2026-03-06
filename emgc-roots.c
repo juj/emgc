@@ -43,7 +43,7 @@ void gc_make_root(void *ptr __attribute__((nonnull)))
 
     void **old_roots = roots;
     roots = (void**)calloc(roots_mask+1, sizeof(void*));
-
+    assert(roots);
     num_roots = 0;
     if (old_roots)
     {
