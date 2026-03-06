@@ -10,7 +10,7 @@ void *gc_ptr_base(void *ptr)
   // TODO: Rewrite this to utilize an allocation range interval tree.
   GC_MALLOC_ACQUIRE();
   for(uint32_t i = 0, offset; i <= table_mask; i += 64)
-    for(uint64_t bits = used_table[i>>6]; bits; bits ^= (1ull<<offset))
+    for(uint64_t bits = ((uint64_t*)used_table)[i>>6]; bits; bits ^= (1ull<<offset))
     {
       void *managed_ptr = REMOVE_FLAG_BITS(table[i + (offset = __builtin_ctzll(bits))]);
       if (ptr >= managed_ptr && (uintptr_t)ptr - (uintptr_t)managed_ptr < malloc_usable_size(managed_ptr))
