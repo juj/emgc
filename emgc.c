@@ -238,10 +238,11 @@ static void mark_current_thread_stack()
 
 void gc_collect()
 {
-  if (!num_allocs) return;
-
+  bool need_collect = true;
   GC_MALLOC_ACQUIRE(); // Acquire GC lock so that we know that the sweep worker has finished.
+  if (num_allocs == 0) need_collect = false; // Early out if whole program has no managed pointers alive.
   GC_MALLOC_RELEASE(); // But release it immediately, since other threads may still sneak in a gc malloc before realizing they need to participate to collection.
+  if (!need_collect) return;
 
   num_finalizers_marked = 0;
 
