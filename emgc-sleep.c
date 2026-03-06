@@ -26,7 +26,11 @@ void gc_temporarily_leave_fence()
   int i = 0;
   while(i < orphan_stack_size && orphan_stacks[i].start != 0)
     ++i;
-  if (i == orphan_stack_cap) orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = (orphan_stack_cap*2 + 1)|31)*sizeof(range));
+  if (i == orphan_stack_cap)
+  {
+    orphan_stacks = (range*)realloc(orphan_stacks, (orphan_stack_cap = (orphan_stack_cap*2 + 1)|31)*sizeof(range));
+    assert(orphan_stacks);
+  }
   if (i == orphan_stack_size) ++orphan_stack_size;
   orphan_stacks[i].start = (void*)emscripten_stack_get_current();
   orphan_stacks[i].end = (void*)stack_top;
