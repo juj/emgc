@@ -25,7 +25,7 @@ static void find_and_run_a_finalizer()
       if (HAS_FINALIZER_BIT(table[j]))
       {
         table[j] = (void*)((uintptr_t)table[j] ^ PTR_FINALIZER_BIT);
-        uint32_t f = find_finalizer_index(table[j]);
+        uint32_t f = find_finalizer_index(REMOVE_FLAG_BITS(table[j]));
         assert(f != INVALID_INDEX);
         void *ptr = finalizers[f].ptr;
         finalizers[f].ptr = (void*)1;
