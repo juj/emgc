@@ -93,7 +93,7 @@ void EMSCRIPTEN_KEEPALIVE __attribute__((noinline)) gc_sleep(double nsecs)
 
 int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t nsecs)
 {
-  if (*(int32_t*)addr != expected) return 1; // not-equal
+  if (emscripten_atomic_load_u32(addr) != expected) return 1; // not-equal
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (nsecs != 0) gc_temporarily_leave_fence();
@@ -107,7 +107,7 @@ int gc_wait32(void *addr __attribute__((nonnull)), uint32_t expected, int64_t ns
 
 int gc_wait64(void *addr __attribute__((nonnull)), uint64_t expected, int64_t nsecs)
 {
-  if (*(int64_t*)addr != expected) return 1; // not-equal
+  if (emscripten_atomic_load_u32(addr) != expected) return 1; // not-equal
 
 #ifdef __EMSCRIPTEN_SHARED_MEMORY__
   if (nsecs != 0) gc_temporarily_leave_fence();
