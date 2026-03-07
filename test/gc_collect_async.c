@@ -5,6 +5,7 @@
 // run: browser
 #include "test.h"
 #include <emscripten.h>
+#include <emscripten/eventloop.h>
 
 void verify(void *unused)
 {
