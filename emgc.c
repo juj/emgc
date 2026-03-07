@@ -178,9 +178,9 @@ void gc_free(void *ptr)
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   assert(i != INVALID_INDEX);
-  table_free(i);
   gc_unmake_root(ptr);
   remove_finalizer(ptr);
+  table_free(i);
   GC_MALLOC_RELEASE();
 }
 
