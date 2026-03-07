@@ -65,6 +65,7 @@ static void table_insert(void *ptr)
   uint32_t i64 = i>>6;
   uint64_t *used64 = (uint64_t*)used_table;
   uint64_t u = used64[i64] | ((1ull<<(i&63))-1); // Mask off all indices that come before the initial hash index
+  assert((table_mask+1) % 64 == 0); // invariant on table sizes guarantees they are always a multiple of 64 entries.
   while(u == (uint64_t)-1)
     u = used64[(i64 = (i64+1) & (table_mask >> 6))];
   i = (i64<<6) + __builtin_ctzll(~u);
