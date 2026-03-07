@@ -11,7 +11,11 @@ static void insert_root(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
   uint32_t i = hash_root(ptr);
-  while((uintptr_t)roots[i] > 1) i = (i+1) & roots_mask;
+  while((uintptr_t)roots[i] > 1)
+  {
+    if (roots[i] == ptr) return; // This pointer was already recorded as a root, so no-op.
+    i = (i+1) & roots_mask;
+  }
   if ((uintptr_t)roots[i] != 1) ++num_roots_slots_populated;
   roots[i] = ptr;
 }
@@ -102,4 +106,9 @@ void *gc_malloc_leaf(size_t bytes)
   void *ptr = gc_malloc(bytes);
   if (ptr) gc_make_leaf(ptr);
   return ptr;
+}
+
+int debug_gc_num_roots_slots_populated()
+{
+  return num_roots_slots_populated;
 }

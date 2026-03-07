@@ -69,6 +69,9 @@ void gc_dump(void);
 void gc_loge(const char *format, ...);
 void gc_log(const char *format, ...);
 
+// Internal debug functions. Only tests are allowed to access these:
+int debug_gc_num_roots_slots_populated(void);
+
 #ifdef __cplusplus
 }
 #endif
