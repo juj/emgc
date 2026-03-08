@@ -187,6 +187,7 @@ void gc_free(void *ptr)
 
 #include "emgc-weak.c"
 #include "emgc-roots.c"
+#include "emgc-custom_root_blocks.c"
 #include "emgc-mark.c"
 
 static void sweep()
