@@ -51,7 +51,7 @@ static void insert_finalizer(void *ptr, gc_finalizer finalizer)
   while((uintptr_t)finalizers[i].ptr > 1 && finalizers[i].ptr != ptr)
     i = (i+1) & finalizers_mask;
 
-  if (!finalizers[i].ptr) ++num_finalizer_slots_populated;
+  if (finalizers[i].ptr == 0) ++num_finalizer_slots_populated;
   if (finalizers[i].ptr != ptr)
   {
     ++num_finalizers;

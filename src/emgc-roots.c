@@ -16,7 +16,7 @@ static void insert_root(void *ptr __attribute__((nonnull)))
     if (roots[i] == ptr) return; // This pointer was already recorded as a root, so no-op.
     i = (i+1) & roots_mask;
   }
-  if ((uintptr_t)roots[i] != 1) ++num_roots_slots_populated;
+  if ((uintptr_t)roots[i] == 0) ++num_roots_slots_populated;
   roots[i] = ptr;
 }
 
