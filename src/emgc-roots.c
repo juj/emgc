@@ -39,6 +39,7 @@ int gc_is_root(void *ptr)
 void gc_make_root(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
+  assert(gc_is_strong_ptr(ptr)); // This function can only be called on gc managed ptrs.
   gc_acquire_lock(&roots_lock);
   uint32_t old_mask = roots_mask;
   if (2*num_roots_slots_populated >= roots_mask)
@@ -64,6 +65,7 @@ void gc_unmake_root(void *ptr __attribute__((nonnull)))
 {
   if (!roots) return;
   assert(ptr);
+  assert(gc_is_strong_ptr(ptr)); // This function can only be called on gc managed ptrs.
   gc_acquire_lock(&roots_lock);
   for(uint32_t i = hash_root(ptr); roots[i]; i = (i+1) & roots_mask)
     if (roots[i] == ptr)
@@ -84,6 +86,7 @@ void *gc_malloc_root(size_t bytes)
 void gc_make_leaf(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
+  assert(gc_is_strong_ptr(ptr)); // This function can only be called on gc managed ptrs.
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   assert(i != INVALID_INDEX);
@@ -94,6 +97,7 @@ void gc_make_leaf(void *ptr __attribute__((nonnull)))
 void gc_unmake_leaf(void *ptr __attribute__((nonnull)))
 {
   assert(ptr);
+  assert(gc_is_strong_ptr(ptr)); // This function can only be called on gc managed ptrs.
   GC_MALLOC_ACQUIRE();
   uint32_t i = table_find(ptr);
   assert(i != INVALID_INDEX);
