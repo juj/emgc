@@ -30,5 +30,7 @@ int main()
   CALL_INDIRECTLY(func);
 
   gc_collect();
+  gc_collect(); // Need to collect multiple times for each finalizer to run.
+  gc_collect();
   require(gc_num_ptrs() == 0 && "All allocations should be freed");
 }

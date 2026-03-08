@@ -74,6 +74,8 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
     finalizers = (finalizer_map*)calloc(finalizers_mask+1, sizeof(finalizer_map));
     assert(finalizers);
     num_finalizer_slots_populated = 0;
+    int prev_num_finalizers = num_finalizers;
+    num_finalizers = 0; // insert_finalizer() will recalculate number of registered finalizers.
 
     if (old_finalizers)
     {
@@ -82,6 +84,7 @@ void gc_register_finalizer(void *ptr, gc_finalizer finalizer)
           insert_finalizer(old_finalizers[i].ptr, old_finalizers[i].finalizer);
       free(old_finalizers);
     }
+    assert(prev_num_finalizers == num_finalizers); // Count should match.
   }
   insert_finalizer(ptr, finalizer);
 
