@@ -28,7 +28,7 @@ def bat_suffix(executable):
     return f'{executable}.bat'
   return executable
 
-cmd = [bat_suffix('emcc'), 'emgc.c', '-o', 'a.html', '-I.', '--js-library', 'test/library_test.js', '--js-library', 'lib_emgc.js']
+cmd = [bat_suffix('emcc'), 'src/emgc.c', '-o', 'a.html', '-Itest', '-Isrc', '--js-library', 'test/library_test.js', '--js-library', 'src/lib_emgc.js']
 
 failures = []
 passes = 0
