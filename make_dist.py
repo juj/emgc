@@ -59,6 +59,7 @@ def main():
   with open('dist/emgc-amalgamation.c', "w", encoding="utf-8") as f:
     f.write(result)
   shutil.copyfile('src/emgc.h', 'dist/emgc.h')
+  shutil.copyfile('src/libemgc.js', 'dist/libemgc.js')
 
 if __name__ == "__main__":
     main()
