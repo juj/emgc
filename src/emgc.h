@@ -18,6 +18,9 @@ void *gc_calloc_root(size_t bytes);
 void gc_make_root(void *ptr __attribute__((nonnull)));
 void gc_unmake_root(void *ptr __attribute__((nonnull)));
 
+void gc_add_custom_root_block(void *ptr __attribute__((nonnull)), size_t bytes);
+void gc_remove_custom_root_block(void *ptr __attribute__((nonnull)));
+
 void *gc_malloc_leaf(size_t bytes);
 void *gc_calloc_leaf(size_t bytes);
 void gc_make_leaf(void *ptr __attribute__((nonnull)));

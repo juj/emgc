@@ -11,6 +11,13 @@ static emscripten_lock_t custom_roots_lock = EMSCRIPTEN_LOCK_T_STATIC_INITIALIZE
 
 static uint32_t hash_custom_root(void *ptr) { return (uint32_t)((uintptr_t)ptr >> 3) & custom_roots_mask; }
 
+static void mark_custom_root_blocks()
+{
+  if (custom_roots)
+    for(uint32_t i = 0; i <= custom_roots_mask; ++i)
+      mark(custom_roots[i].start, (uintptr_t)custom_roots[i].end - (uintptr_t)custom_roots[i].start);
+}
+
 static void insert_custom_root(void *start __attribute__((nonnull)), void *end __attribute__((nonnull)))
 {
   assert(start);
@@ -19,7 +26,7 @@ static void insert_custom_root(void *start __attribute__((nonnull)), void *end _
 
 #if !defined(NDEBUG) && !EMGC_SKIP_AUTOMATIC_STATIC_MARKING
   // When building without -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING, custom added root blocks cannot be contained within global/static data section. (they are already covered automatically)
-  assert(((uintptr_t)start >= (uintptr_t)&__heap_base + (uintptr_t)emscripten_get_heap_size() || (uintptr_t)end <= (uintptr_t)&__heap_base) && "When building without -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING, custom root blocks cannot be memory areas that are contained in the program global/static data section, because that section is already explicitly tracked. Build with -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING to skip automatic global/static marking.");
+  assert(((uintptr_t)start >= (uintptr_t)&__data_end || (uintptr_t)end <= (uintptr_t)&__global_base) && "When building without -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING, custom root blocks cannot be memory areas that are contained in the program global/static data section, because that section is already explicitly tracked. Build with -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING to skip automatic global/static marking.");
 #endif
 
   uint32_t i = hash_custom_root(start);

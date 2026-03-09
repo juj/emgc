@@ -254,6 +254,7 @@ void gc_collect()
   mark(&__global_base, (uintptr_t)&__data_end - (uintptr_t)&__global_base);
 #endif
 
+  mark_custom_root_blocks();
   mark_current_thread_stack();
   mark_orphaned_stacks();
 
