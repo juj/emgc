@@ -22,7 +22,7 @@ static void insert_custom_root(void *start __attribute__((nonnull)), void *end _
   assert(((uintptr_t)start >= (uintptr_t)&__heap_base + (uintptr_t)emscripten_get_heap_size() || (uintptr_t)end <= (uintptr_t)&__heap_base) && "When building without -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING, custom root blocks cannot be memory areas that are contained in the program global/static data section, because that section is already explicitly tracked. Build with -DEMGC_SKIP_AUTOMATIC_STATIC_MARKING to skip automatic global/static marking.");
 #endif
 
-  uint32_t i = hash_root(start);
+  uint32_t i = hash_custom_root(start);
   while((uintptr_t)custom_roots[i].start > 1)
   {
     assert(custom_roots[i].start != start && "gc_add_custom_root_block() attempted to register the same custom root block twice!");
