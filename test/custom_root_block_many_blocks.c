@@ -1,7 +1,7 @@
 // Stress test: registers many custom root blocks to exercise hash table growth
 // inside the custom root block registry. All GC pointers held across the blocks
 // must survive collection, and must all be collected after removal.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

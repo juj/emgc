@@ -1,7 +1,7 @@
 // Tests that a single custom root block can hold many GC pointers simultaneously,
 // and that all of them are kept alive across gc_collect(). Upon removal, all are
 // collected.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

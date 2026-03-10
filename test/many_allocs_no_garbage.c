@@ -1,5 +1,5 @@
 // Stress tests performing many allocations that all are retained.
-// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS -DNDEBUG
+// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS
 #include "test.h"
 #include <emscripten/html5.h>
 #include <string.h>

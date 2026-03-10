@@ -2,7 +2,7 @@
 // A malloc()-managed buffer (not GC-managed) is registered as a custom root region.
 // The GC pointer inside the buffer must be kept alive for as long as the block is registered,
 // even after the stack frame that created the allocation has been cleared.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

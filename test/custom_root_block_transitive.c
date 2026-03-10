@@ -1,7 +1,7 @@
 // Tests that GC pointers transitively reachable through a custom root block are kept alive.
 // If the block contains pointer A, and A's contents include pointer B, then B must
 // also survive collection, just as it would via any other root.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

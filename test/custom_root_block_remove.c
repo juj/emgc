@@ -1,6 +1,6 @@
 // Tests that gc_remove_custom_root_block() correctly un-roots the block, allowing
 // pointers that were only held inside it to be collected on the next gc_collect().
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

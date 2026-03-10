@@ -1,5 +1,5 @@
 // Stress tests performing many temporary allocations that all immediately turn into garbage.
-// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS -DNDEBUG
+// flags: -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=4GB -sSPILL_POINTERS
 #include "test.h"
 #include <emscripten/html5.h>
 #include <string.h>

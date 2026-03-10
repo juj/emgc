@@ -2,7 +2,7 @@
 // removing the block itself) causes the pointer to be collected on the next
 // gc_collect(). The GC scans the block's current contents at collection time,
 // so a zeroed slot no longer roots the allocation it previously held.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

@@ -1,6 +1,6 @@
 // Tests multiple custom root blocks registered simultaneously, and that removing
 // one block only releases the pointers it was rooting, leaving the others unaffected.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

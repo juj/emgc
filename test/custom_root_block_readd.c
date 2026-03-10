@@ -1,6 +1,6 @@
 // Tests that a custom root block can be removed and immediately re-added (without
 // an intervening gc_collect()) and continue to root pointers correctly.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 

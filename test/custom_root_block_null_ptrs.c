@@ -1,7 +1,7 @@
 // Tests that a custom root block containing a mix of null entries and valid GC
 // pointers is scanned correctly. Null (and non-pointer) words must not cause
 // crashes, and only the actual GC pointers must be kept alive.
-// flags: -sSPILL_POINTERS -DNDEBUG
+// flags: -sSPILL_POINTERS
 #include "test.h"
 #include <stdlib.h>
 
